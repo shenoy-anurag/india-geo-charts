@@ -1,0 +1,25 @@
+{
+  "name": "india-geo-charts",
+  "version": "0.0.1",
+  "description": "Typescript library for interactive geojson choropleth and bubble charts for India. ",
+  "homepage": "https://github.com/shenoy-anurag/india-geo-charts#readme",
+  "bugs": {
+    "url": "https://github.com/shenoy-anurag/india-geo-charts/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shenoy-anurag/india-geo-charts.git"
+  },
+  "license": "MIT",
+  "author": "Anurag Shenoy",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "typescript": "^6.0.2"
+  }
+}
