@@ -143,4 +143,9 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 
+# user-defined
 *.env
+
+.opencode
+.github
+.agent
