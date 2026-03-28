@@ -1,4 +1,4 @@
-import type { GeoFeature, Point, GeoGeometry } from '../types';
+import type { GeoFeature, Point, GeoGeometry } from '../types.js';
 
 function moveTo(x: number, y: number): string {
   return `M${x.toFixed(2)},${y.toFixed(2)}`;

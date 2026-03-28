@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { IndiaGeoChartOptions, IndiaGeoChart } from '../types';
-import { ChartRenderer } from '../core/renderer';
+import type { IndiaGeoChartOptions, IndiaGeoChart } from '../types.js';
+import { ChartRenderer } from '../core/renderer.js';
 
 export interface UseIndiaGeoChartOptions extends Omit<IndiaGeoChartOptions, 'container'> {
   containerId?: string;

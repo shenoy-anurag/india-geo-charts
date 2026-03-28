@@ -1,7 +1,7 @@
-import { parseGeoJson, getFeatureId } from './geojson';
-import { createProjection } from './projection';
-import { projectFeature, calculateFeatureCentroid, extractBoundsFromGeoJson } from './path';
-import { createColorScale, createLinearScale, DEFAULT_COLORS } from '../utils/colors';
+import { parseGeoJson, getFeatureId } from './geojson.js';
+import { createProjection } from './projection.js';
+import { projectFeature, calculateFeatureCentroid, extractBoundsFromGeoJson } from './path.js';
+import { createColorScale, createLinearScale, DEFAULT_COLORS } from '../utils/colors.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -663,10 +663,11 @@ export class ChartRenderer {
       gradient.setAttribute('y2', '0%');
       
       const colors = this.options.colors.scale;
-      for (let i = 0; i < colors.length; i++) {
+      for (const [i, color] of colors.entries()) {
         const stop = document.createElementNS(SVG_NS, 'stop');
-        stop.setAttribute('offset', `${(i / (colors.length - 1)) * 100}%`);
-        stop.setAttribute('stop-color', colors[i]);
+        const offset = colors.length > 1 ? (i / (colors.length - 1)) * 100 : 0;
+        stop.setAttribute('offset', `${offset}%`);
+        stop.setAttribute('stop-color', color);
         gradient.appendChild(stop);
       }
       

@@ -145,7 +145,12 @@ vite.config.ts.timestamp-*
 
 # user-defined
 *.env
+.DS_Store
 
+# opencode
 .opencode
 .github
 .agent
+
+# data
+data
