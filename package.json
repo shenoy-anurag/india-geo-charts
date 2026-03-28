@@ -1,7 +1,7 @@
 {
   "name": "india-geo-charts",
   "version": "0.0.1",
-  "description": "Typescript library for interactive geojson choropleth and bubble charts for India. ",
+  "description": "Lightweight TypeScript library for interactive choropleth and bubble charts of India",
   "homepage": "https://github.com/shenoy-anurag/india-geo-charts#readme",
   "bugs": {
     "url": "https://github.com/shenoy-anurag/india-geo-charts/issues"
@@ -12,14 +12,70 @@
   },
   "license": "MIT",
   "author": "Anurag Shenoy",
-  "type": "commonjs",
-  "main": "dist/index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc"
+  "sideEffects": false,
+  "type": "module",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./react": {
+      "import": {
+        "types": "./dist/esm/react/index.d.ts",
+        "default": "./dist/esm/react/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/react/index.d.ts",
+        "default": "./dist/cjs/react/index.js"
+      }
+    }
   },
+  "types": "dist/esm/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "npm run build:esm && npm run build:cjs",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json && node scripts/fix-cjs.mjs",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "size": "node scripts/size.js"
+  },
+  "keywords": [
+    "india",
+    "geojson",
+    "choropleth",
+    "bubble-chart",
+    "maps",
+    "visualization",
+    "typescript"
+  ],
   "devDependencies": {
-    "@types/node": "^25.5.0",
-    "typescript": "^6.0.2"
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.0.0"
+  },
+  "peerDependencies": {
+    "react": ">=16.8.0",
+    "react-dom": ">=16.8.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
   }
 }
