@@ -2,10 +2,34 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ChartRenderer } from '../src/core/renderer.js';
 import * as fs from 'fs';
 import * as path from 'path';
+import type { ChartData, TopoTopology } from '../src/types.js';
+import { getAllFeatures, getTopoFeature } from '../src/core/topojson.js';
 
-// Load GeoJSON once for all tests
-const geoJsonPath = path.resolve(__dirname, '../data/in.json');
-const geoJson = JSON.parse(fs.readFileSync(geoJsonPath, 'utf8'));
+// Load TopoJSON once for all tests
+const topoJsonPath = path.resolve(__dirname, '../data/india-states.topo.json');
+const topoJson = JSON.parse(fs.readFileSync(topoJsonPath, 'utf8')) as TopoTopology;
+const features = getAllFeatures(topoJson);
+
+function createTestData(values: Record<string, number>): ChartData {
+  return {
+    labels: ['States'],
+    datasets: [{
+      label: 'States',
+      outline: getTopoFeature(topoJson, 'data') as any,
+      showOutline: true,
+      data: features
+        .filter(f => f.properties?.ID_1 && values[String(f.properties.ID_1)] !== undefined)
+        .map(f => {
+          // ensure the feature returned by getFeatureId matches our test keys.
+          f.id = String(f.properties!.ID_1);
+          return {
+             feature: f as any,
+             value: values[String(f.properties!.ID_1)]!
+          };
+        })
+    }]
+  };
+}
 
 // Mock PointerEvent if not available in jsdom
 if (typeof window !== 'undefined' && !window.PointerEvent) {
@@ -34,14 +58,13 @@ describe('ChartRenderer Export tests', () => {
   });
 
   it('should export SVG correctly', async () => {
-    const data: Record<string, number> = {
+    const data = createTestData({
       '1': 100, // Andaman and Nicobar
       '2': 200, // Telangana
-    };
+    });
 
     const renderer = new ChartRenderer({
       container,
-      geoJson,
       data,
       chartType: 'choropleth',
       width: 800,
@@ -59,16 +82,16 @@ describe('ChartRenderer Export tests', () => {
 
     // Save to data/exports for verification
     const exportPath = path.resolve(__dirname, '../data/exports/test-export.svg');
+    if (!fs.existsSync(path.dirname(exportPath))) {
+      fs.mkdirSync(path.dirname(exportPath), { recursive: true });
+    }
     fs.writeFileSync(exportPath, svgString);
   });
 
   it('should export PNG correctly (mocking Image and Canvas behavior)', async () => {
-    // JSDOM doesn't support canvas/image loading out of the box
-    // So we'll need to mock some parts of exportPNG
-    const data = { '1': 100 };
+    const data = createTestData({ '1': 100 });
     const renderer = new ChartRenderer({
       container,
-      geoJson,
       data,
       chartType: 'choropleth',
       width: 800,
@@ -99,9 +122,13 @@ describe('ChartRenderer Export tests', () => {
       width: 0,
       height: 0
     };
+    
+    // We can't spyOn document.createElement cleanly without typescript complaining
+    // So we just rely on casting for standard JS mock pattern.
+    const originalCreateElement = document.createElement.bind(document);
     vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
         if (tagName === 'canvas') return mockCanvas as any;
-        return document.createElementNS('http://www.w3.org/1999/xhtml', tagName);
+        return originalCreateElement(tagName) as any;
     });
 
     const pngBlob = await renderer.export('png');
@@ -109,8 +136,10 @@ describe('ChartRenderer Export tests', () => {
     expect((pngBlob as Blob).type).toBe('image/png');
     expect((pngBlob as Blob).size).toBeGreaterThan(0);
 
-    // Save to data/exports for verification
     const exportPath = path.resolve(__dirname, '../data/exports/test-export.png');
+    if (!fs.existsSync(path.dirname(exportPath))) {
+      fs.mkdirSync(path.dirname(exportPath), { recursive: true });
+    }
     fs.writeFileSync(exportPath, Buffer.from(await (pngBlob as Blob).arrayBuffer()));
   });
 });

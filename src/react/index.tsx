@@ -11,8 +11,8 @@ export interface UseIndiaGeoChartReturn {
   chart: IndiaGeoChart | null;
   isLoading: boolean;
   error: Error | null;
-  update: (data: Record<string, number>) => void;
-  updateGeoJson: (geoJson: IndiaGeoChartOptions['geoJson']) => void;
+  update: (data: import('../types.js').ChartData) => void;
+  updateTopoJson: (topoJson: IndiaGeoChartOptions['topoJson']) => void;
   exportChart: (format: 'png' | 'svg') => Promise<string | Blob>;
   destroy: () => void;
 }
@@ -63,12 +63,14 @@ export function useIndiaGeoChart(options: UseIndiaGeoChartOptions): UseIndiaGeoC
     }
   }, [options.data]);
   
-  const update = useCallback((data: Record<string, number>) => {
+  const update = useCallback((data: import('../types.js').ChartData) => {
     chartRef.current?.update(data);
   }, []);
   
-  const updateGeoJson = useCallback((geoJson: IndiaGeoChartOptions['geoJson']) => {
-    chartRef.current?.updateGeoJson(geoJson);
+  const updateTopoJson = useCallback((topoJson: IndiaGeoChartOptions['topoJson']) => {
+    if (topoJson) {
+      chartRef.current?.updateTopoJson(topoJson);
+    }
   }, []);
   
   const exportChart = useCallback(async (format: 'png' | 'svg') => {
@@ -89,7 +91,7 @@ export function useIndiaGeoChart(options: UseIndiaGeoChartOptions): UseIndiaGeoC
     isLoading,
     error,
     update,
-    updateGeoJson,
+    updateTopoJson,
     exportChart,
     destroy
   };

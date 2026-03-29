@@ -1,7 +1,7 @@
-import { parseGeoJson, getFeatureId } from './geojson.js';
-import { createProjection } from './projection.js';
-import { projectFeature, calculateFeatureCentroid, extractBoundsFromGeoJson } from './path.js';
+import { getFeatureId } from './topojson.js';
+import { createProjection, type ProjectionContext } from './projection.js';
 import { createColorScale, createLinearScale, DEFAULT_COLORS } from '../utils/colors.js';
+import type { ChartData, GeoFeature, ChartDatasetItem } from '../types.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -39,8 +39,8 @@ interface AnnotationConfig {
 
 interface ChartOptions {
   container: HTMLElement;
-  geoJson: any;
-  data: Record<string, number>;
+  topoJson?: any;
+  data: import('../types.js').ChartData;
   chartType: 'choropleth' | 'bubble';
   width: number;
   height: number;
@@ -92,10 +92,9 @@ export class ChartRenderer {
   private svg: SVGSVGElement | null = null;
   private featureElements: Map<string, SVGPathElement> = new Map();
   private bubbleElements: Map<string, SVGCircleElement> = new Map();
-  private features: any[] = [];
-  private data: Record<string, number> = {};
+  private chartData!: import('../types.js').ChartData;
   private options!: ChartOptions;
-  private projection: any = null;
+  private projectionCtx: ProjectionContext | null = null;
   private colorScale: any = null;
   private bubbleScale: any = null;
   private eventListeners: Map<string, Function[]> = new Map();
@@ -158,13 +157,13 @@ export class ChartRenderer {
     
     this.options = {
       container: this.container,
-      geoJson: options.geoJson,
-      data: options.data || {},
+      topoJson: options.topoJson,
+      data: options.data,
       chartType: options.chartType || 'choropleth',
       width: options.width || this.container.clientWidth || 800,
       height: options.height || this.container.clientHeight || 600,
       padding: options.padding ?? 20,
-      projection: options.projection || 'mercator',
+      projection: options.projection || 'albers',
       projectionConfig: options.projectionConfig || {},
       colors: {
         fill: options.colors?.fill ?? DEFAULT_COLORS.fill,
@@ -208,8 +207,7 @@ export class ChartRenderer {
   }
   
   private init(): void {
-    this.features = parseGeoJson(this.options.geoJson);
-    this.data = this.options.data;
+    this.chartData = this.options.data;
     
     this.setupProjection();
     this.createSVG();
@@ -218,10 +216,14 @@ export class ChartRenderer {
   }
   
   private setupProjection(): void {
-    const bounds = extractBoundsFromGeoJson(this.features);
-    this.projection = createProjection(
+    if (!this.chartData || !this.chartData.datasets || this.chartData.datasets.length === 0) return;
+    
+    const defaultDataset = this.chartData.datasets[0];
+    if (!defaultDataset || !defaultDataset.outline) return;
+
+    this.projectionCtx = createProjection(
       this.options.projection,
-      bounds,
+      defaultDataset.outline as any,
       this.options.width,
       this.options.height,
       {
@@ -230,15 +232,22 @@ export class ChartRenderer {
       }
     );
     
+    let min = Infinity, max = -Infinity;
+    let hasValues = false;
+    for (const d of this.chartData.datasets) {
+       for (const item of d.data) {
+           if (isFinite(item.value)) {
+               min = Math.min(min, item.value);
+               max = Math.max(max, item.value);
+               hasValues = true;
+           }
+       }
+    }
+    if (!hasValues) { min = 0; max = 1; }
+    
     if (this.options.chartType === 'choropleth') {
-      const values = Object.values(this.data).filter(v => isFinite(v));
-      const min = values.length > 0 ? Math.min(...values) : 0;
-      const max = values.length > 0 ? Math.max(...values) : 1;
       this.colorScale = createColorScale([min, max], this.options.colors.scale);
     } else {
-      const values = Object.values(this.data).filter(v => isFinite(v));
-      const min = values.length > 0 ? Math.min(...values) : 0;
-      const max = values.length > 0 ? Math.max(...values) : 1;
       this.bubbleScale = createLinearScale([min, max], [this.options.bubbleConfig.minRadius, this.options.bubbleConfig.maxRadius]);
     }
   }
@@ -293,7 +302,7 @@ export class ChartRenderer {
   }
   
   private render(): void {
-    if (!this.svg || !this.projection) return;
+    if (!this.svg || !this.projectionCtx) return;
     
     const mainGroup = this.svg.querySelector('.main-group');
     if (!mainGroup) return;
@@ -313,41 +322,67 @@ export class ChartRenderer {
   }
   
   private renderChoropleth(parent: Element): void {
-    for (const feature of this.features) {
-      const id = getFeatureId(feature);
-      const value = this.data[id];
-      const color = value !== undefined && this.colorScale 
-        ? this.colorScale(value) 
-        : this.options.colors.fill;
-      
-      const path = document.createElementNS(SVG_NS, 'path');
-      path.setAttribute('d', projectFeature(feature, this.projection.project));
-      path.setAttribute('fill', color);
-      path.setAttribute('stroke', this.options.colors.border);
-      path.setAttribute('stroke-width', String(this.options.colors.borderWidth));
-      path.setAttribute('data-id', id);
-      path.style.cursor = 'pointer';
-      
-      this.setupFeatureEvents(path, feature, value);
-      
-      parent.appendChild(path);
-      this.featureElements.set(id, path);
+    if (!this.projectionCtx) return;
+    for (const dataset of this.chartData.datasets) {
+       if (dataset.showOutline && dataset.outline) {
+           const outlinePath = document.createElementNS(SVG_NS, 'path');
+           const d = this.projectionCtx.pathGenerator(dataset.outline as any);
+           if (d) outlinePath.setAttribute('d', d);
+           outlinePath.setAttribute('fill', 'none');
+           outlinePath.setAttribute('stroke', this.options.colors.border);
+           outlinePath.setAttribute('stroke-width', '1.5');
+           outlinePath.style.pointerEvents = 'none';
+           parent.appendChild(outlinePath);
+       }
+       for (const item of dataset.data) {
+           const feature = item.feature;
+           const value = item.value;
+           const id = getFeatureId(feature);
+           const color = value !== undefined && this.colorScale 
+             ? this.colorScale(value) : this.options.colors.fill;
+           
+           const path = document.createElementNS(SVG_NS, 'path');
+           const d = this.projectionCtx.pathGenerator(feature as any);
+           if (d) path.setAttribute('d', d);
+           path.setAttribute('fill', color);
+           path.setAttribute('stroke', this.options.colors.border);
+           path.setAttribute('stroke-width', String(this.options.colors.borderWidth));
+           path.setAttribute('data-id', id);
+           path.style.cursor = 'pointer';
+           
+           this.setupFeatureEvents(path, feature, value);
+           parent.appendChild(path);
+           this.featureElements.set(id, path);
+       }
     }
   }
   
   private renderBubbles(parent: Element): void {
+    if (!this.projectionCtx) return;
     const bubbles: any[] = [];
     
-    for (const feature of this.features) {
-      const id = getFeatureId(feature);
-      const value = this.data[id];
-      
-      if (value === undefined || !this.bubbleScale) continue;
-      
-      const centroid = calculateFeatureCentroid(feature, this.projection.project);
-      const radius = this.bubbleScale(value);
-      
-      bubbles.push({ feature, centroid, value, radius });
+    for (const dataset of this.chartData.datasets) {
+      if (dataset.showOutline && dataset.outline) {
+        const outlinePath = document.createElementNS(SVG_NS, 'path');
+        const d = this.projectionCtx.pathGenerator(dataset.outline as any);
+        if (d) outlinePath.setAttribute('d', d);
+        outlinePath.setAttribute('fill', 'none');
+        outlinePath.setAttribute('stroke', this.options.colors.border);
+        outlinePath.setAttribute('stroke-width', '1.5');
+        outlinePath.style.pointerEvents = 'none';
+        parent.appendChild(outlinePath);
+      }
+      for (const item of dataset.data) {
+        const feature = item.feature;
+        const value = item.value;
+        if (value === undefined || !this.bubbleScale) continue;
+        
+        const centroid = this.projectionCtx.pathGenerator.centroid(feature as any);
+        if (!centroid || isNaN(centroid[0])) continue;
+        
+        const radius = this.bubbleScale(value);
+        bubbles.push({ feature, centroid: { x: centroid[0], y: centroid[1] }, value, radius });
+      }
     }
     
     for (const bubble of bubbles) {
@@ -363,7 +398,6 @@ export class ChartRenderer {
       circle.style.cursor = 'pointer';
       
       this.setupBubbleEvents(circle, bubble.feature, bubble.value);
-      
       parent.appendChild(circle);
       this.bubbleElements.set(id, circle);
     }
@@ -476,7 +510,12 @@ export class ChartRenderer {
       const id = getFeatureId(feature);
       const path = this.featureElements.get(id);
       if (path) {
-        const value = this.data[id];
+        let value: number | undefined;
+        for (const ds of this.chartData.datasets) {
+          const item = ds.data.find(d => getFeatureId(d.feature) === id);
+          if (item) { value = item.value; break; }
+        }
+        
         const color = value !== undefined && this.colorScale 
           ? this.colorScale(value) 
           : this.options.colors.fill;
@@ -750,46 +789,46 @@ export class ChartRenderer {
     this.legendGroup.appendChild(legendG);
   }
   
-  public update(data: Record<string, number>): void {
-    this.data = data;
+  public update(data: import('../types.js').ChartData): void {
+    this.chartData = data;
+    
+    let min = Infinity, max = -Infinity;
+    let hasValues = false;
+    for (const d of this.chartData.datasets) {
+      for (const item of d.data) {
+        if (isFinite(item.value)) { min = Math.min(min, item.value); max = Math.max(max, item.value); hasValues = true; }
+      }
+    }
+    if (!hasValues) { min = 0; max = 1; }
     
     if (this.options.chartType === 'choropleth') {
-      const values = Object.values(data).filter(v => isFinite(v));
-      if (values.length > 0) {
-        const min = Math.min(...values);
-        const max = Math.max(...values);
-        this.colorScale = createColorScale([min, max], this.options.colors.scale);
-      }
-      
-      for (const [id, path] of this.featureElements) {
-        const value = this.data[id];
-        const color = value !== undefined && this.colorScale 
-          ? this.colorScale(value) 
-          : this.options.colors.fill;
-        path.setAttribute('fill', color);
+      this.colorScale = createColorScale([min, max], this.options.colors.scale);
+      for (const dataset of this.chartData.datasets) {
+         for (const item of dataset.data) {
+           const id = getFeatureId(item.feature);
+           const path = this.featureElements.get(id);
+           if (path) {
+             const color = item.value !== undefined && this.colorScale ? this.colorScale(item.value) : this.options.colors.fill;
+             path.setAttribute('fill', color);
+           }
+         }
       }
     } else {
-      const values = Object.values(data).filter(v => isFinite(v));
-      if (values.length > 0) {
-        const min = Math.min(...values);
-        const max = Math.max(...values);
-        this.bubbleScale = createLinearScale([min, max], [this.options.bubbleConfig.minRadius, this.options.bubbleConfig.maxRadius]);
-      }
-      
-      for (const [id, circle] of this.bubbleElements) {
-        const value = this.data[id];
-        if (value !== undefined && this.bubbleScale) {
-          const radius = this.bubbleScale(value);
-          circle.setAttribute('r', String(radius));
-        }
+      this.bubbleScale = createLinearScale([min, max], [this.options.bubbleConfig.minRadius, this.options.bubbleConfig.maxRadius]);
+      const mainGroup = this.svg?.querySelector('.main-group');
+      if (mainGroup) {
+         mainGroup.innerHTML = '';
+         this.featureElements.clear();
+         this.bubbleElements.clear();
+         this.renderBubbles(mainGroup);
       }
     }
     
     this.renderLegend();
   }
   
-  public updateGeoJson(geoJson: any): void {
-    this.features = parseGeoJson(geoJson);
+  public updateTopoJson(topoJson: any): void {
+    this.options.topoJson = topoJson;
     this.setupProjection();
     this.createSVG();
     this.render();

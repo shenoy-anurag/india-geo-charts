@@ -61,10 +61,12 @@
     "typescript"
   ],
   "devDependencies": {
+    "@types/d3-geo": "^3.1.0",
     "@types/jsdom": "^28.0.1",
     "@types/node": "^22.0.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/topojson-client": "^3.1.5",
     "esbuild": "^0.24.0",
     "jsdom": "^29.0.1",
     "react": "^19.2.4",
@@ -83,5 +85,9 @@
     "react-dom": {
       "optional": true
     }
+  },
+  "dependencies": {
+    "d3-geo": "^3.1.1",
+    "topojson-client": "^3.1.0"
   }
 }

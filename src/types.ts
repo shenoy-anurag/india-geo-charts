@@ -120,12 +120,37 @@ export interface FeatureCollection {
   features: GeoFeature[];
 }
 
-export type GeoJSON = FeatureCollection | GeoGeometry | GeoFeature;
+
+// TopoJSON definitions
+export interface TopoTopology {
+  type: 'Topology';
+  objects: Record<string, any>;
+  arcs: number[][][];
+  transform?: { scale: [number, number]; translate: [number, number] };
+  bbox?: [number, number, number, number];
+}
+
+export interface ChartDatasetItem {
+  value: number;
+  feature: GeoFeature;
+}
+
+export interface ChartDataset {
+  label: string;
+  outline: GeoFeature | GeoGeometry;
+  showOutline: boolean;
+  data: ChartDatasetItem[];
+}
+
+export interface ChartData {
+  labels: string[];
+  datasets: ChartDataset[];
+}
 
 export interface IndiaGeoChartOptions {
   container: HTMLElement | string;
-  geoJson: GeoJSON;
-  data?: Record<string, number>;
+  topoJson?: TopoTopology; // Used for projection bounds / topology data
+  data: ChartData;
   chartType?: ChartType;
   
   width?: number;
@@ -178,8 +203,8 @@ export interface IndiaGeoChartOptions {
 }
 
 export interface IndiaGeoChart {
-  update(data: Record<string, number>): void;
-  updateGeoJson(geoJson: GeoJSON): void;
+  update(data: ChartData): void;
+  updateTopoJson(topoJson: TopoTopology): void;
   export(format: ExportFormat): Promise<string | Blob>;
   destroy(): void;
   on(event: 'hover' | 'click' | 'leave', callback: (...args: unknown[]) => void): void;
