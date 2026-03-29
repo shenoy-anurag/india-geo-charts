@@ -199,9 +199,10 @@ describe('ChartRenderer Export tests', () => {
       colors: {
         fill: '#ffffffb7',
         border: '#e4e5e7',
+        // border: '#000000',
         borderWidth: 0.3,
         hover: '#ccc',
-        scale: ['#f7fbff', '#08306b']
+        scale: ['#dfefff', '#08306b']
       },
       fontConfig: {
         externalFonts: ['https://fonts.googleapis.com/css2?family=Recursive:wght@300..1000&display=swap'],

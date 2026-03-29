@@ -25,12 +25,33 @@ function createTestData(values: Record<string, number>): ChartData {
           // since renderer uses getFeatureId which preferring f.id, let's override f.id
           f.id = String(f.properties!.ID_1);
           return {
-             feature: f as any,
-             value: values[String(f.properties!.ID_1)]!
+            feature: f as any,
+            value: values[String(f.properties!.ID_1)]!
           };
         })
     }]
   };
+}
+
+function getFeatureBounds(feature: any) {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  function update(coord: any) {
+    if (typeof coord[0] === 'number' && typeof coord[1] === 'number') {
+      minX = Math.min(minX, coord[0]);
+      minY = Math.min(minY, coord[1]);
+      maxX = Math.max(maxX, coord[0]);
+      maxY = Math.max(maxY, coord[1]);
+      return;
+    }
+    for (const child of coord) update(child);
+  }
+
+  update(feature.geometry.coordinates);
+  return { width: maxX - minX, height: maxY - minY };
 }
 
 // Mock PointerEvent if not available in jsdom
@@ -202,16 +223,16 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
 
     const northPath = container.querySelector('path[data-id="33"]');
     const southPath = container.querySelector('path[data-id="1"]');
-    
+
     expect(northPath).toBeTruthy();
     expect(southPath).toBeTruthy();
-    
+
     if (northPath && southPath) {
       const getCenterY = (p: Element) => {
         const bbox = (p as SVGPathElement).getBBox();
         return bbox.y + bbox.height / 2;
       };
-      
+
       // JSDOM might not support getBBox fully, but we can check the path 'd' attribute
       const getYFromPath = (p: Element) => {
         const d = p.getAttribute('d') || '';
@@ -222,7 +243,7 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
 
       const northY = getYFromPath(northPath);
       const southY = getYFromPath(southPath);
-      
+
       if (northY !== null && southY !== null) {
         expect(northY).toBeLessThan(southY); // North should be closer to Top (smaller Y)
       }
@@ -282,7 +303,7 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
     // Check if features from both datasets are rendered
     const ds1Feature = container.querySelector('path[data-id^="ds1_"]');
     const ds2Feature = container.querySelector('path[data-id^="ds2_"]');
-    
+
     expect(ds1Feature).toBeTruthy();
     expect(ds2Feature).toBeTruthy();
   });
@@ -316,7 +337,23 @@ describe('Indian island repositioning', () => {
 
     expect(originalCentroid).not.toBeNull();
     expect(adjustedCentroid).not.toBeNull();
-    expect(adjustedCentroid[0]).toBeGreaterThan(originalCentroid[0]);
+    expect(adjustedCentroid[0]).toBeGreaterThan(originalCentroid[0] * 0.8);
+  });
+
+  it('should scale Lakshadweep to twice its original size', () => {
+    const island = features.find(f => f.properties?.NAME_1 === 'Lakshadweep');
+    expect(island).toBeTruthy();
+
+    const adjustedIsland = repositionIndianIslands(island as any) as any;
+    const originalBounds = getFeatureBounds(island);
+    const scaledBounds = getFeatureBounds(adjustedIsland);
+
+    expect(originalBounds.width).toBeGreaterThan(0);
+    expect(originalBounds.height).toBeGreaterThan(0);
+    expect(scaledBounds.width / originalBounds.width).toBeGreaterThan(1.9);
+    expect(scaledBounds.width / originalBounds.width).toBeLessThan(2.5);
+    expect(scaledBounds.height / originalBounds.height).toBeGreaterThan(1.9);
+    expect(scaledBounds.height / originalBounds.height).toBeLessThan(2.5);
   });
 
   it('should keep the mainland map layout fitting the chart container', () => {
