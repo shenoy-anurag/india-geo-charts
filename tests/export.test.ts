@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { ChartRenderer } from '../src/core/renderer.js';
+import { ChartRenderer, type ChartOptions } from '../src/core/renderer.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { ChartData, TopoTopology } from '../src/types.js';
@@ -75,7 +75,11 @@ describe('ChartRenderer Export tests', () => {
     const svgString = await renderer.export('svg') as string;
     expect(typeof svgString).toBe('string');
     expect(svgString).toContain('svg');
-    expect(svgString).toContain('xmlns="http://www.w3.org/2000/svg"');
+
+    // Count occurrences of 'xmlns="http://www.w3.org/2000/svg"'
+    const xmlnsMatch = svgString.match(/xmlns="http:\/\/www\.w3\.org\/2000\/svg"/g);
+    expect(xmlnsMatch?.length).toBe(1); // Should appear exactly once
+
     expect(svgString).toContain('data-id="1"');
     expect(svgString).toContain('data-id="2"');
     expect(svgString).toContain('SVG Export Test');
@@ -145,7 +149,7 @@ describe('ChartRenderer Export tests', () => {
 
   it('should render and export using all Indian states with randomized values', async () => {
     const nation = getTopoFeature(topoJson, 'data');
-    
+
     const data: ChartData = {
       labels: features.map(f => (f.properties?.NAME_1 as string) || 'Unknown'),
       datasets: [{
@@ -174,12 +178,21 @@ describe('ChartRenderer Export tests', () => {
       height: 800,
       title: 'All India States - Randomized Data',
       colors: {
-        scale: ['#f7fbff', '#08306b'] // Blue scale
-      }
+        fill: '#ffffffb7',
+        border: '#e4e5e7',
+        borderWidth: 1,
+        hover: '#ccc',
+        scale: ['#f7fbff', '#08306b']
+      },
+      fontConfig: {
+        externalFonts: ['https://fonts.googleapis.com/css2?family=Recursive:wght@300..1000&display=swap'],
+        defaultFamily: "'Recursive', sans-serif"
+      },
+      subtitle: 'Randomized Data',
     });
 
     const svgString = await renderer.export('svg') as string;
-    
+
     // Verify some specific states are present in the output
     expect(svgString).toContain('data-id="maharashtra"');
     expect(svgString).toContain('data-id="orissa"');
