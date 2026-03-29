@@ -50,10 +50,25 @@ describe('ChartRenderer Export tests', () => {
     Object.defineProperty(container, 'clientWidth', { value: 800 });
     Object.defineProperty(container, 'clientHeight', { value: 600 });
     document.body.appendChild(container);
+
+    // Mock document.head.appendChild to track link injection and simulate load events
+    const originalAppend = document.head.appendChild;
+    vi.spyOn(document.head, 'appendChild').mockImplementation((node) => {
+      const result = originalAppend.call(document.head, node);
+      if (node instanceof HTMLLinkElement && node.rel === 'stylesheet') {
+        // Mock onload call in next tick to let microtasks process
+        setTimeout(() => {
+          if (node.onload) (node.onload as any)();
+        }, 0);
+      }
+      return result;
+    });
   });
 
   afterEach(() => {
     document.body.removeChild(container);
+    // Clean up injected links
+    document.head.querySelectorAll('link[rel="stylesheet"]').forEach(l => l.remove());
     vi.restoreAllMocks();
   });
 
@@ -71,6 +86,8 @@ describe('ChartRenderer Export tests', () => {
       height: 600,
       title: 'SVG Export Test'
     });
+
+    await new Promise(r => setTimeout(r, 0));
 
     const svgString = await renderer.export('svg') as string;
     expect(typeof svgString).toBe('string');
@@ -101,6 +118,8 @@ describe('ChartRenderer Export tests', () => {
       width: 800,
       height: 600
     });
+
+    await new Promise(r => setTimeout(r, 0));
 
     // Mock Image and its behavior
     const mockImage = {
@@ -180,7 +199,7 @@ describe('ChartRenderer Export tests', () => {
       colors: {
         fill: '#ffffffb7',
         border: '#e4e5e7',
-        borderWidth: 1,
+        borderWidth: 0.3,
         hover: '#ccc',
         scale: ['#f7fbff', '#08306b']
       },
@@ -190,6 +209,8 @@ describe('ChartRenderer Export tests', () => {
       },
       subtitle: 'Randomized Data',
     });
+
+    await new Promise(r => setTimeout(r, 0));
 
     const svgString = await renderer.export('svg') as string;
 

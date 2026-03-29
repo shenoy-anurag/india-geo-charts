@@ -2,6 +2,8 @@ import { getFeatureId } from './topojson.js';
 import { createProjection, type ProjectionContext } from './projection.js';
 import { createColorScale, createLinearScale, DEFAULT_COLORS } from '../utils/colors.js';
 import type { ChartData, GeoFeature, ChartDatasetItem } from '../types.js';
+import { NPM_PACKAGE_URL } from '../constants.js';
+import { url } from 'inspector';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -19,6 +21,7 @@ interface TooltipConfig {
 interface WatermarkConfig {
   text: string;
   opacity: number;
+  url: string;
 }
 
 interface LegendConfig {
@@ -68,8 +71,8 @@ export interface ChartOptions {
     borderWidth: number;
   };
   fontConfig: {
-    externalFonts?: string[];
-    defaultFamily?: string;
+    externalFonts: string[];
+    defaultFamily: string;
   };
   tooltip: TooltipConfig | false;
   formatValue: (v: number) => string;
@@ -143,7 +146,7 @@ export class ChartRenderer {
 
   private initOptions(options: any): void {
     const fontConfig = {
-      externalFonts: options.fontConfig?.externalFonts || ['https://fonts.googleapis.com/css2?family=Recursive:wght@300..1000&display=swap'],
+      externalFonts: options.fontConfig?.externalFonts || ['https://fonts.googleapis.com/css2?family=Recursive:wght@300..1000'],
       defaultFamily: options.fontConfig?.defaultFamily || "'Recursive', sans-serif"
     };
 
@@ -171,7 +174,7 @@ export class ChartRenderer {
       : false;
 
     const watermarkConfig = options.watermark !== false
-      ? { text: 'india-geo-charts', opacity: 0.3, ...(options.watermark || {}) }
+      ? { text: 'india-geo-charts', opacity: 0.3, url: NPM_PACKAGE_URL, ...(options.watermark || {}) }
       : false;
 
     this.options = {
@@ -229,16 +232,20 @@ export class ChartRenderer {
   private init(): void {
     this.chartData = this.options.data;
 
-    this.injectExternalFonts();
     this.setupProjection();
     this.createSVG();
     this.setupTooltip();
-    this.render();
+
+    // Ensure fonts are loaded before the first render
+    this.injectExternalFonts().then(() => {
+      this.render();
+    });
   }
 
-  private injectExternalFonts(): void {
+  private async injectExternalFonts(): Promise<void> {
     if (typeof document === 'undefined' || !this.options.fontConfig.externalFonts) return;
 
+    const links: HTMLLinkElement[] = [];
     const existingLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]')) as HTMLLinkElement[];
 
     for (const url of this.options.fontConfig.externalFonts) {
@@ -248,6 +255,25 @@ export class ChartRenderer {
       link.rel = 'stylesheet';
       link.href = url;
       document.head.appendChild(link);
+      links.push(link);
+    }
+
+    // Wait for all newly added link tags to load their stylesheets (with a 1000ms fail-safe)
+    if (links.length > 0) {
+      await Promise.all(links.map(link => new Promise((resolve) => {
+        const timeout = setTimeout(resolve, 1000);
+        link.onload = () => { clearTimeout(timeout); resolve(null); };
+        link.onerror = () => { clearTimeout(timeout); resolve(null); };
+      })));
+    }
+
+    // Check if the browser supports font loading API and wait for all fonts to be ready
+    if (typeof (document as any).fonts?.ready !== 'undefined') {
+      try {
+        await (document as any).fonts.ready;
+      } catch (e) {
+        // Continue even if font loading API fails
+      }
     }
   }
 
@@ -301,6 +327,16 @@ export class ChartRenderer {
     this.svg.style.fontFamily = 'sans-serif';
 
     const defs = document.createElementNS(SVG_NS, 'defs');
+    const fontStyle = document.createElementNS(SVG_NS, 'style');
+    fontStyle.textContent = `
+    @import url('${this.options.fontConfig.externalFonts[0]}');
+    text { 
+        font-family: ${this.options.fontConfig.defaultFamily}, sans-serif; 
+        fill: #333;
+  }
+    `;
+    fontStyle.setAttribute('type', 'text/css');
+    defs.appendChild(fontStyle);
     this.svg.appendChild(defs);
 
     const mainGroup = document.createElementNS(SVG_NS, 'g');
@@ -368,7 +404,7 @@ export class ChartRenderer {
         if (d) outlinePath.setAttribute('d', d);
         outlinePath.setAttribute('fill', 'none');
         outlinePath.setAttribute('stroke', this.options.colors.border);
-        outlinePath.setAttribute('stroke-width', '1.5');
+        outlinePath.setAttribute('stroke-width', String(this.options.colors.borderWidth));
         outlinePath.style.pointerEvents = 'none';
         parent.appendChild(outlinePath);
       }
@@ -662,13 +698,16 @@ export class ChartRenderer {
         this.options.height - 10,
         {
           fontSize: 10,
-          fontFamily: 'sans-serif',
+          fontFamily: this.options.fontConfig.defaultFamily,
           color: `rgba(128, 128, 128, ${this.options.watermark.opacity})`,
         },
         'end'
       );
       watermark.setAttribute('opacity', String(this.options.watermark.opacity));
-      this.annotationGroup.appendChild(watermark);
+      const watermarkLink = document.createElementNS(SVG_NS, 'a');
+      watermarkLink.setAttribute('href', this.options.watermark.url);
+      watermarkLink.appendChild(watermark);
+      this.annotationGroup.appendChild(watermarkLink);
     }
   }
 

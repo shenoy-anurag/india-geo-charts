@@ -46,14 +46,29 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
     Object.defineProperty(container, 'clientWidth', { value: 800 });
     Object.defineProperty(container, 'clientHeight', { value: 600 });
     document.body.appendChild(container);
+
+    // Mock document.head.appendChild to track link injection and simulate load events
+    const originalAppend = document.head.appendChild;
+    vi.spyOn(document.head, 'appendChild').mockImplementation((node) => {
+      const result = originalAppend.call(document.head, node);
+      if (node instanceof HTMLLinkElement && node.rel === 'stylesheet') {
+        // Mock onload call in next tick to let microtasks process
+        setTimeout(() => {
+          if (node.onload) (node.onload as any)();
+        }, 0);
+      }
+      return result;
+    });
   });
 
   afterEach(() => {
     document.body.removeChild(container);
+    // Clean up injected links
+    document.head.querySelectorAll('link[rel="stylesheet"]').forEach(l => l.remove());
     vi.restoreAllMocks();
   });
 
-  it('should initialize and render a choropleth map', () => {
+  it('should initialize and render a choropleth map', async () => {
     const data = createTestData({
       '1': 100, // Andaman and Nicobar
       '2': 200, // Telangana
@@ -71,6 +86,8 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
       legend: { show: true }
     });
 
+    await new Promise(r => setTimeout(r, 0));
+
     const svg = container.querySelector('svg');
     expect(svg).toBeTruthy();
 
@@ -81,7 +98,7 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
     expect(fill1).not.toBe('#e0e0e0');
   });
 
-  it('should update data and change colors dynamically', () => {
+  it('should update data and change colors dynamically', async () => {
     const data = createTestData({
       '1': 10,
       '2': 100,
@@ -92,6 +109,8 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
       data,
       chartType: 'choropleth',
     });
+
+    await new Promise(r => setTimeout(r, 0));
 
     const path1 = container.querySelector('path[data-id="1"]');
     const initialColor = path1?.getAttribute('fill');
@@ -106,7 +125,7 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
     expect(updatedColor).not.toBe(initialColor);
   });
 
-  it('should show tooltip on hover', () => {
+  it('should show tooltip on hover', async () => {
     const data = createTestData({
       '1': 100,
       '2': 200,
@@ -122,6 +141,8 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
       }
     });
 
+    await new Promise(r => setTimeout(r, 0));
+
     const path1 = container.querySelector('path[data-id="1"]') as SVGPathElement;
     expect(path1).toBeTruthy();
 
@@ -129,7 +150,7 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
     expect(tooltip).toBeTruthy();
   });
 
-  it('should render bubble chart when chartType is bubble', () => {
+  it('should render bubble chart when chartType is bubble', async () => {
     const data = createTestData({
       '1': 10,
       '2': 50,
@@ -147,6 +168,8 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
       }
     });
 
+    await new Promise(r => setTimeout(r, 0));
+
     const circles = container.querySelectorAll('circle');
     expect(circles.length).toBeGreaterThanOrEqual(1);
 
@@ -162,7 +185,7 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
     expect(r3).toBeGreaterThan(r1);
   });
 
-  it('should render the map with correct orientation (North at top) using Albers projection', () => {
+  it('should render the map with correct orientation (North at top) using Albers projection', async () => {
     // ID 33 is Ladakh (North), ID 1 is Andaman and Nicobar (South)
     const data = createTestData({ '1': 100, '33': 200 });
     const renderer = new ChartRenderer({
@@ -173,6 +196,8 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
       height: 600,
       projection: 'albers'
     });
+
+    await new Promise(r => setTimeout(r, 0));
 
     const northPath = container.querySelector('path[data-id="33"]');
     const southPath = container.querySelector('path[data-id="1"]');
@@ -203,7 +228,7 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
     }
   });
 
-  it('should support Mercator projection', () => {
+  it('should support Mercator projection', async () => {
     const data = createTestData({ '1': 100 });
     const renderer = new ChartRenderer({
       container,
@@ -212,12 +237,14 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
       projection: 'mercator'
     });
 
+    await new Promise(r => setTimeout(r, 0));
+
     const path1 = container.querySelector('path[data-id="1"]');
     expect(path1).toBeTruthy();
     expect(path1?.getAttribute('d')).toContain('M');
   });
 
-  it('should render multiple datasets', () => {
+  it('should render multiple datasets', async () => {
     const baseOutline = getTopoFeature(topoJson, 'data') as any;
     const data: ChartData = {
       labels: ['Dataset 1', 'Dataset 2'],
@@ -248,6 +275,8 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
       data,
       chartType: 'choropleth'
     });
+
+    await new Promise(r => setTimeout(r, 0));
 
     // Check if features from both datasets are rendered
     const ds1Feature = container.querySelector('path[data-id^="ds1_"]');
