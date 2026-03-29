@@ -1,9 +1,8 @@
 import { getFeatureId } from './topojson.js';
-import { createProjection, type ProjectionContext } from './projection.js';
+import { createProjection, repositionIndianIslands, type ProjectionContext } from './projection.js';
 import { createColorScale, createLinearScale, DEFAULT_COLORS } from '../utils/colors.js';
 import type { ChartData, GeoFeature, ChartDatasetItem } from '../types.js';
 import { NPM_PACKAGE_URL } from '../constants.js';
-import { url } from 'inspector';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -437,8 +436,9 @@ export class ChartRenderer {
 
     for (const dataset of this.chartData.datasets) {
       if (dataset.showOutline && dataset.outline) {
+        const outlineFeature = repositionIndianIslands(dataset.outline as any);
         const outlinePath = document.createElementNS(SVG_NS, 'path');
-        const d = this.projectionCtx.pathGenerator(dataset.outline as any);
+        const d = this.projectionCtx.pathGenerator(outlineFeature as any);
         if (d) outlinePath.setAttribute('d', d);
         outlinePath.setAttribute('fill', 'none');
         outlinePath.setAttribute('stroke', this.options.colors.border);
@@ -451,7 +451,8 @@ export class ChartRenderer {
         const value = item.value;
         if (value === undefined || !this.bubbleScale) continue;
 
-        const centroid = this.projectionCtx.pathGenerator.centroid(feature as any);
+        const projectedFeature = repositionIndianIslands(feature as any);
+        const centroid = this.projectionCtx.pathGenerator.centroid(projectedFeature as any);
         if (!centroid || isNaN(centroid[0])) continue;
 
         const radius = this.bubbleScale(value);

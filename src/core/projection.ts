@@ -1,5 +1,60 @@
 import { geoConicEqualArea, geoMercator, geoPath, type GeoProjection, type GeoPath } from 'd3-geo';
-import type { Bounds, GeoFeature, GeoGeometry } from '../types.js';
+import type { Bounds, FeatureCollection, GeoFeature, GeoGeometry } from '../types.js';
+
+const ISLAND_TRANSLATION_OFFSETS: Record<string, [number, number]> = {
+  'Andaman and Nicobar': [-20, 3],
+  'Lakshadweep': [8, 1]
+};
+
+function getIslandTranslation(feature: GeoFeature): [number, number] | null {
+  const name = String(feature.properties?.NAME_1 || feature.properties?.name || feature.id || '').trim();
+  return ISLAND_TRANSLATION_OFFSETS[name] ?? null;
+}
+
+function translateCoordinates(coordinates: any, offset: [number, number]): any {
+  if (typeof coordinates[0] === 'number' && typeof coordinates[1] === 'number') {
+    return [coordinates[0] + offset[0], coordinates[1] + offset[1]];
+  }
+  return coordinates.map((coord: any) => translateCoordinates(coord, offset));
+}
+
+function translateGeometry(geometry: GeoGeometry, offset: [number, number]): GeoGeometry {
+  return {
+    ...geometry,
+    coordinates: translateCoordinates(geometry.coordinates, offset) as any
+  };
+}
+
+function translateFeature(feature: GeoFeature, offset: [number, number]): GeoFeature {
+  return {
+    ...feature,
+    geometry: translateGeometry(feature.geometry, offset)
+  };
+}
+
+export function repositionIndianIslands(input: GeoFeature | GeoGeometry | FeatureCollection): GeoFeature | GeoGeometry | FeatureCollection {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    return input;
+  }
+
+  if ('type' in input && input.type === 'FeatureCollection') {
+    return {
+      ...input,
+      features: input.features.map((feature) => {
+        const translation = getIslandTranslation(feature);
+        return translation ? translateFeature(feature, translation) : feature;
+      })
+    };
+  }
+
+  if ('type' in input && (input as GeoFeature).geometry) {
+    const feature = input as GeoFeature;
+    const translation = getIslandTranslation(feature);
+    return translation ? translateFeature(feature, translation) : feature;
+  }
+
+  return input;
+}
 
 export interface ProjectionContext {
   projection: GeoProjection;

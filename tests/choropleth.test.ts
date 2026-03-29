@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ChartRenderer } from '../src/core/renderer.js';
+import { createProjection, repositionIndianIslands } from '../src/core/projection.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { ChartData, TopoTopology } from '../src/types.js';
@@ -284,5 +285,46 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
     
     expect(ds1Feature).toBeTruthy();
     expect(ds2Feature).toBeTruthy();
+  });
+});
+
+describe('Indian island repositioning', () => {
+  const nationOutline = getTopoFeature(topoJson, 'data') as any;
+
+  it('should move Andaman and Nicobar closer to the eastern peninsular India region', () => {
+    const island = features.find(f => f.properties?.NAME_1 === 'Andaman and Nicobar');
+    expect(island).toBeTruthy();
+    const adjustedIsland = repositionIndianIslands(island as any) as any;
+    const projectionCtx = createProjection('albers', nationOutline, 800, 600, { padding: 20 });
+
+    const originalCentroid = projectionCtx.pathGenerator.centroid(island as any);
+    const adjustedCentroid = projectionCtx.pathGenerator.centroid(adjustedIsland as any);
+
+    expect(originalCentroid).not.toBeNull();
+    expect(adjustedCentroid).not.toBeNull();
+    expect(adjustedCentroid[0]).toBeLessThan(originalCentroid[0]);
+  });
+
+  it('should move Lakshadweep closer to the western peninsular India region', () => {
+    const island = features.find(f => f.properties?.NAME_1 === 'Lakshadweep');
+    expect(island).toBeTruthy();
+    const adjustedIsland = repositionIndianIslands(island as any) as any;
+    const projectionCtx = createProjection('albers', nationOutline, 800, 600, { padding: 20 });
+
+    const originalCentroid = projectionCtx.pathGenerator.centroid(island as any);
+    const adjustedCentroid = projectionCtx.pathGenerator.centroid(adjustedIsland as any);
+
+    expect(originalCentroid).not.toBeNull();
+    expect(adjustedCentroid).not.toBeNull();
+    expect(adjustedCentroid[0]).toBeGreaterThan(originalCentroid[0]);
+  });
+
+  it('should keep the mainland map layout fitting the chart container', () => {
+    const projectionCtx = createProjection('albers', nationOutline, 800, 600, { padding: 20 });
+
+    expect(projectionCtx.bounds.minX).toBeGreaterThanOrEqual(0);
+    expect(projectionCtx.bounds.minY).toBeGreaterThanOrEqual(0);
+    expect(projectionCtx.bounds.maxX).toBeLessThanOrEqual(800);
+    expect(projectionCtx.bounds.maxY).toBeLessThanOrEqual(600);
   });
 });
