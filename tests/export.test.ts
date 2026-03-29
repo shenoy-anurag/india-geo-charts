@@ -23,8 +23,8 @@ function createTestData(values: Record<string, number>): ChartData {
           // ensure the feature returned by getFeatureId matches our test keys.
           f.id = String(f.properties!.ID_1);
           return {
-             feature: f as any,
-             value: values[String(f.properties!.ID_1)]!
+            feature: f as any,
+            value: values[String(f.properties!.ID_1)]!
           };
         })
     }]
@@ -103,8 +103,8 @@ describe('ChartRenderer Export tests', () => {
       set src(value: string) {
         setTimeout(() => this.onload(), 10);
       },
-      onload: () => {},
-      onerror: () => {}
+      onload: () => { },
+      onerror: () => { }
     };
     vi.stubGlobal('Image', vi.fn(() => mockImage));
 
@@ -122,13 +122,13 @@ describe('ChartRenderer Export tests', () => {
       width: 0,
       height: 0
     };
-    
+
     // We can't spyOn document.createElement cleanly without typescript complaining
     // So we just rely on casting for standard JS mock pattern.
     const originalCreateElement = document.createElement.bind(document);
     vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
-        if (tagName === 'canvas') return mockCanvas as any;
-        return originalCreateElement(tagName) as any;
+      if (tagName === 'canvas') return mockCanvas as any;
+      return originalCreateElement(tagName) as any;
     });
 
     const pngBlob = await renderer.export('png');
@@ -141,5 +141,56 @@ describe('ChartRenderer Export tests', () => {
       fs.mkdirSync(path.dirname(exportPath), { recursive: true });
     }
     fs.writeFileSync(exportPath, Buffer.from(await (pngBlob as Blob).arrayBuffer()));
+  });
+
+  it('should render and export using all Indian states with randomized values', async () => {
+    const nation = getTopoFeature(topoJson, 'data');
+    
+    const data: ChartData = {
+      labels: features.map(f => (f.properties?.NAME_1 as string) || 'Unknown'),
+      datasets: [{
+        label: 'Indian States',
+        outline: nation as any,
+        showOutline: true,
+        data: features.map(f => {
+          // Ensure every feature has a predictable ID for testing
+          const name = f.properties?.NAME_1 as string;
+          if (name) {
+            f.id = name.toLowerCase().replace(/\s+/g, '_');
+          }
+          return {
+            feature: f as any,
+            value: Math.random() * 100
+          };
+        })
+      }]
+    };
+
+    const renderer = new ChartRenderer({
+      container,
+      data,
+      chartType: 'choropleth',
+      width: 1000,
+      height: 800,
+      title: 'All India States - Randomized Data',
+      colors: {
+        scale: ['#f7fbff', '#08306b'] // Blue scale
+      }
+    });
+
+    const svgString = await renderer.export('svg') as string;
+    
+    // Verify some specific states are present in the output
+    expect(svgString).toContain('data-id="maharashtra"');
+    expect(svgString).toContain('data-id="orissa"');
+    expect(svgString).toContain('data-id="karnataka"');
+    expect(svgString).toContain('All India States');
+
+    // Save to data/exports for visual verification
+    const exportPath = path.resolve(__dirname, '../data/exports/all-states-random.svg');
+    if (!fs.existsSync(path.dirname(exportPath))) {
+      fs.mkdirSync(path.dirname(exportPath), { recursive: true });
+    }
+    fs.writeFileSync(exportPath, svgString);
   });
 });

@@ -37,3 +37,14 @@ The library SHALL change the fill color of a hovered feature.
 - **WHEN** user moves cursor away from a feature
 - **THEN** the feature SHALL revert to its original fill color
 
+### Requirement: Choropleth Rendering Tests
+The implementation SHALL satisfy regression tests for choropleth rendering.
+
+#### Scenario: Existing Choropleth Renderer Tests
+- **WHEN** Vitest runs the `tests/choropleth.test.ts` suite
+- **THEN** all tests SHALL pass, covering:
+  - Basic rendering with manual data IDs
+  - Dynamic data updates and color changes
+  - Interactive tooltip behavior
+  - Bubble chart switching
+

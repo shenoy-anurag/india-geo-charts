@@ -161,4 +161,99 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
 
     expect(r3).toBeGreaterThan(r1);
   });
+
+  it('should render the map with correct orientation (North at top) using Albers projection', () => {
+    // ID 33 is Ladakh (North), ID 1 is Andaman and Nicobar (South)
+    const data = createTestData({ '1': 100, '33': 200 });
+    const renderer = new ChartRenderer({
+      container,
+      data,
+      chartType: 'choropleth',
+      width: 800,
+      height: 600,
+      projection: 'albers'
+    });
+
+    const northPath = container.querySelector('path[data-id="33"]');
+    const southPath = container.querySelector('path[data-id="1"]');
+    
+    expect(northPath).toBeTruthy();
+    expect(southPath).toBeTruthy();
+    
+    if (northPath && southPath) {
+      const getCenterY = (p: Element) => {
+        const bbox = (p as SVGPathElement).getBBox();
+        return bbox.y + bbox.height / 2;
+      };
+      
+      // JSDOM might not support getBBox fully, but we can check the path 'd' attribute
+      const getYFromPath = (p: Element) => {
+        const d = p.getAttribute('d') || '';
+        // Extract the first Y coordinate from a 'M x,y' or 'L x,y' instruction
+        const match = d.match(/[ML]\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/);
+        return (match && match[2]) ? parseFloat(match[2]) : null;
+      };
+
+      const northY = getYFromPath(northPath);
+      const southY = getYFromPath(southPath);
+      
+      if (northY !== null && southY !== null) {
+        expect(northY).toBeLessThan(southY); // North should be closer to Top (smaller Y)
+      }
+    }
+  });
+
+  it('should support Mercator projection', () => {
+    const data = createTestData({ '1': 100 });
+    const renderer = new ChartRenderer({
+      container,
+      data,
+      chartType: 'choropleth',
+      projection: 'mercator'
+    });
+
+    const path1 = container.querySelector('path[data-id="1"]');
+    expect(path1).toBeTruthy();
+    expect(path1?.getAttribute('d')).toContain('M');
+  });
+
+  it('should render multiple datasets', () => {
+    const baseOutline = getTopoFeature(topoJson, 'data') as any;
+    const data: ChartData = {
+      labels: ['Dataset 1', 'Dataset 2'],
+      datasets: [
+        {
+          label: 'Dataset 1',
+          outline: baseOutline,
+          showOutline: true,
+          data: features.slice(0, 5).map(f => {
+            f.id = 'ds1_' + (f.properties?.ID_1 || Math.random());
+            return { feature: f as any, value: 10 };
+          })
+        },
+        {
+          label: 'Dataset 2',
+          outline: baseOutline,
+          showOutline: false,
+          data: features.slice(5, 10).map(f => {
+            f.id = 'ds2_' + (f.properties?.ID_1 || Math.random());
+            return { feature: f as any, value: 50 };
+          })
+        }
+      ]
+    };
+
+    const renderer = new ChartRenderer({
+      container,
+      data,
+      chartType: 'choropleth'
+    });
+
+    // Check if features from both datasets are rendered
+    const ds1Feature = container.querySelector('path[data-id^="ds1_"]');
+    const ds2Feature = container.querySelector('path[data-id^="ds2_"]');
+    
+    expect(ds1Feature).toBeTruthy();
+    expect(ds2Feature).toBeTruthy();
+  });
 });

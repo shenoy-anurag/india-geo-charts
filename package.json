@@ -53,7 +53,7 @@
   },
   "keywords": [
     "india",
-    "geojson",
+    "topojson",
     "choropleth",
     "bubble-chart",
     "maps",
