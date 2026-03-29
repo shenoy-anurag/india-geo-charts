@@ -31,10 +31,17 @@ export interface BubbleConfig {
   borderWidth?: number;
 }
 
+export interface FontConfig {
+  externalFonts?: string[];
+  defaultFamily?: string;
+}
+
 export interface TooltipConfig {
   offset?: Point;
   fontSize?: number;
   fontFamily?: string;
+  fontWeight?: string | number;
+  fontStyle?: string;
   backgroundColor?: string;
   borderColor?: string;
   textColor?: string;
@@ -43,6 +50,8 @@ export interface TooltipConfig {
 export interface AnnotationConfig {
   fontFamily?: string;
   fontSize?: number;
+  fontWeight?: string | number;
+  fontStyle?: string;
   color?: string;
 }
 
@@ -60,6 +69,8 @@ export interface LegendConfig {
   height?: number;
   fontSize?: number;
   fontFamily?: string;
+  fontWeight?: string | number;
+  fontStyle?: string;
   backgroundColor?: string;
   borderColor?: string;
   borderWidth?: number;
@@ -173,6 +184,8 @@ export interface IndiaGeoChartOptions {
   };
   
   bubbleConfig?: BubbleConfig;
+  
+  fontConfig?: FontConfig;
   
   tooltip?: TooltipConfig | false;
   formatValue?: (value: number) => string;

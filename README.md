@@ -9,7 +9,7 @@ A lightweight TypeScript library for creating interactive choropleth and bubble 
 - **Pure SVG rendering** - Native browser SVG, no Canvas for display
 - **Interactive tooltips** - Hover to see state name and values
 - **Export support** - PNG and SVG export via API
-- **Customizable** - Colors, fonts, titles, legends, watermarks
+- **Customizable** - Colors, fonts (Google Fonts/CDN), titles, legends, watermarks
 - **TypeScript** - Full type definitions included
 
 ## Installation
@@ -78,6 +78,32 @@ const chart = createChart({
 });
 ```
 
+## Custom Fonts & CDN
+
+Easily use Google Fonts or any external stylesheet for your charts.
+
+```typescript
+const chart = createChart({
+  container: '#map',
+  data: populationData,
+  fontConfig: {
+    // Automatically injects Google Fonts link into document head
+    externalFonts: [
+      'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap'
+    ],
+    // Set global default font family
+    defaultFamily: 'Montserrat'
+  },
+  titleConfig: {
+    fontSize: 24,
+    fontWeight: 'bold' // Custom font weights
+  },
+  subtitleConfig: {
+    fontStyle: 'italic' // Custom font styles
+  }
+});
+```
+
 ## API
 
 ### createChart(options)
@@ -103,6 +129,10 @@ Creates a new chart instance.
 | `legend` | `LegendConfig \| false` | `true` | Legend options |
 | `watermark` | `WatermarkConfig \| false` | `true` | Watermark options |
 | `formatValue` | `(value: number) => string` | `v => v.toLocaleString()` | Value formatter |
+| `fontConfig.externalFonts` | `string[]` | `[]` | External font URLs (CDN) |
+| `fontConfig.defaultFamily` | `string` | `'sans-serif'` | Global default font family |
+| `titleConfig.fontWeight` | `string \| number` | `undefined` | Title font weight |
+| `titleConfig.fontStyle` | `'normal' \| 'italic'` | `undefined` | Title font style |
 
 ### Methods
 
