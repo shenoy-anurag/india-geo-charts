@@ -108,7 +108,7 @@ export function createProjection(
   height: number,
   config?: { padding?: number; center?: [number, number]; parallels?: [number, number]; rotate?: [number, number, number] }
 ): ProjectionContext {
-  const padding = config?.padding ?? 10;
+  const padding = config?.padding ?? 20;
 
   let projection: GeoProjection;
   if (type === 'mercator') {
