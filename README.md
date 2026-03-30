@@ -4,11 +4,11 @@ A lightweight TypeScript library for creating interactive choropleth and bubble 
 
 ## Features
 
-- **Zero dependencies** - No D3, Recharts, or other heavy libraries
-- **Small bundle** - ~9KB gzipped
+- **Minimal dependencies** - d3-geo and topojson-client.
+- **Small bundle** - ~29KB gzipped
 - **Pure SVG rendering** - Native browser SVG, no Canvas for display
 - **Interactive tooltips** - Hover to see state name and values
-- **Export support** - PNG and SVG export via API
+- **Export support** - PNG and SVG export via API (PNG export is not working at the moment)
 - **Customizable** - Colors, fonts (Google Fonts/CDN), titles, legends, watermarks
 - **TypeScript** - Full type definitions included
 

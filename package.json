@@ -1,6 +1,6 @@
 {
   "name": "india-geo-charts",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Lightweight TypeScript library for interactive choropleth and bubble charts of India",
   "homepage": "https://github.com/shenoy-anurag/india-geo-charts#readme",
   "bugs": {

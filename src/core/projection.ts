@@ -2,12 +2,12 @@ import { geoCentroid, geoConicEqualArea, geoMercator, geoPath, type GeoProjectio
 import type { Bounds, FeatureCollection, GeoFeature, GeoGeometry } from '../types.js';
 
 const ISLAND_TRANSLATION_OFFSETS: Record<string, [number, number]> = {
-  'Andaman and Nicobar': [-8, 3],
+  'Andaman and Nicobar Islands': [-8, 3],
   'Lakshadweep': [-2, 2.1]
 };
 
 function getIslandTranslation(feature: GeoFeature): [number, number] | null {
-  const name = String(feature.properties?.NAME_1 || feature.properties?.name || feature.id || '').trim();
+  const name = String(feature.properties?.name || feature.id || '').trim();
   return ISLAND_TRANSLATION_OFFSETS[name] ?? null;
 }
 
@@ -58,7 +58,7 @@ function scaleFeature(feature: GeoFeature, factor: number): GeoFeature {
 }
 
 function getIslandScaleFactor(feature: GeoFeature): number | null {
-  const name = String(feature.properties?.NAME_1 || feature.properties?.name || feature.id || '').trim();
+  const name = String(feature.properties?.name || feature.id || '').trim();
   if (name === 'Lakshadweep') return 2;
   return null;
 }
