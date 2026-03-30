@@ -7,7 +7,7 @@ import type { ChartData, TopoTopology } from '../src/types.js';
 import { getAllFeatures, getTopoFeature } from '../src/core/topojson.js';
 
 // Load TopoJSON once for all tests
-const topoJsonPath = path.resolve(__dirname, '../data/india-states.topo.json');
+const topoJsonPath = path.resolve(__dirname, '../data/india.topo.json');
 const topoJson = JSON.parse(fs.readFileSync(topoJsonPath, 'utf8')) as TopoTopology;
 const features = getAllFeatures(topoJson);
 
@@ -16,17 +16,17 @@ function createTestData(values: Record<string, number>): ChartData {
     labels: ['States'],
     datasets: [{
       label: 'States',
-      outline: getTopoFeature(topoJson, 'data') as any,
+      outline: getTopoFeature(topoJson, 'states') as any,
       showOutline: true,
       data: features
-        .filter(f => f.properties?.ID_1 && values[String(f.properties.ID_1)] !== undefined)
+        .filter(f => f.properties?.id && values[String(f.properties.id)] !== undefined)
         .map(f => {
           // ensure the feature returned by getFeatureId matches our test keys.
           // since renderer uses getFeatureId which preferring f.id, let's override f.id
-          f.id = String(f.properties!.ID_1);
+          f.id = String(f.properties!.name);
           return {
             feature: f as any,
-            value: values[String(f.properties!.ID_1)]!
+            value: values[String(f.properties!.id)]!
           };
         })
     }]
@@ -92,10 +92,12 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
 
   it('should initialize and render a choropleth map', async () => {
     const data = createTestData({
-      '1': 100, // Andaman and Nicobar
-      '2': 200, // Telangana
-      '3': 300, // Andhra Pradesh
+      '01': 100, // J&K
+      '02': 200, // Himachal Pradesh
+      '03': 300, // Punjab
     });
+
+    console.log(data.datasets[0]?.data)
 
     const renderer = new ChartRenderer({
       container,
@@ -113,7 +115,7 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
     const svg = container.querySelector('svg');
     expect(svg).toBeTruthy();
 
-    const path1 = container.querySelector('path[data-id="1"]');
+    const path1 = container.querySelector('path[data-id="Jammu and Kashmir"]');
     expect(path1).toBeTruthy();
 
     const fill1 = path1?.getAttribute('fill');
@@ -122,8 +124,8 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
 
   it('should update data and change colors dynamically', async () => {
     const data = createTestData({
-      '1': 10,
-      '2': 100,
+      '01': 10,
+      '02': 100,
     });
 
     const renderer = new ChartRenderer({
@@ -134,12 +136,12 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
 
     await new Promise(r => setTimeout(r, 0));
 
-    const path1 = container.querySelector('path[data-id="1"]');
+    const path1 = container.querySelector('path[data-id="Jammu and Kashmir"]');
     const initialColor = path1?.getAttribute('fill');
 
     const newData = createTestData({
-      '1': 500,
-      '2': 100
+      '01': 500,
+      '02': 100
     });
     renderer.update(newData);
     const updatedColor = path1?.getAttribute('fill');
@@ -149,8 +151,8 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
 
   it('should show tooltip on hover', async () => {
     const data = createTestData({
-      '1': 100,
-      '2': 200,
+      '01': 100,
+      '02': 200,
     });
 
     const renderer = new ChartRenderer({
@@ -165,7 +167,7 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
 
     await new Promise(r => setTimeout(r, 0));
 
-    const path1 = container.querySelector('path[data-id="1"]') as SVGPathElement;
+    const path1 = container.querySelector('path[data-id="Jammu and Kashmir"]') as SVGPathElement;
     expect(path1).toBeTruthy();
 
     const tooltip = container.querySelector('div[style*="position: absolute"]');
@@ -174,9 +176,9 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
 
   it('should render bubble chart when chartType is bubble', async () => {
     const data = createTestData({
-      '1': 10,
-      '2': 50,
-      '3': 100,
+      '01': 10,
+      '02': 50,
+      '03': 100,
     });
 
     const renderer = new ChartRenderer({
@@ -195,8 +197,8 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
     const circles = container.querySelectorAll('circle');
     expect(circles.length).toBeGreaterThanOrEqual(1);
 
-    const circle1 = container.querySelector('circle[data-id="1"]');
-    const circle3 = container.querySelector('circle[data-id="3"]');
+    const circle1 = container.querySelector('circle[data-id="Jammu and Kashmir"]');
+    const circle3 = container.querySelector('circle[data-id="Punjab"]');
 
     expect(circle1).toBeTruthy();
     expect(circle3).toBeTruthy();
@@ -208,8 +210,8 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
   });
 
   it('should render the map with correct orientation (North at top) using Albers projection', async () => {
-    // ID 33 is Ladakh (North), ID 1 is Andaman and Nicobar (South)
-    const data = createTestData({ '1': 100, '33': 200 });
+    // ID 33 is Tamil Nadu, ID 01 is Jammu and Kashmir
+    const data = createTestData({ '01': 100, '33': 200 });
     const renderer = new ChartRenderer({
       container,
       data,
@@ -221,8 +223,8 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
 
     await new Promise(r => setTimeout(r, 0));
 
-    const northPath = container.querySelector('path[data-id="33"]');
-    const southPath = container.querySelector('path[data-id="1"]');
+    const southPath = container.querySelector('path[data-id="Tamil Nadu"]');
+    const northPath = container.querySelector('path[data-id="Jammu and Kashmir"]');
 
     expect(northPath).toBeTruthy();
     expect(southPath).toBeTruthy();
@@ -251,7 +253,7 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
   });
 
   it('should support Mercator projection', async () => {
-    const data = createTestData({ '1': 100 });
+    const data = createTestData({ '01': 100 });
     const renderer = new ChartRenderer({
       container,
       data,
@@ -261,13 +263,13 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
 
     await new Promise(r => setTimeout(r, 0));
 
-    const path1 = container.querySelector('path[data-id="1"]');
+    const path1 = container.querySelector('path[data-id="Jammu and Kashmir"]');
     expect(path1).toBeTruthy();
     expect(path1?.getAttribute('d')).toContain('M');
   });
 
   it('should render multiple datasets', async () => {
-    const baseOutline = getTopoFeature(topoJson, 'data') as any;
+    const baseOutline = getTopoFeature(topoJson, 'states') as any;
     const data: ChartData = {
       labels: ['Dataset 1', 'Dataset 2'],
       datasets: [
@@ -276,7 +278,7 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
           outline: baseOutline,
           showOutline: true,
           data: features.slice(0, 5).map(f => {
-            f.id = 'ds1_' + (f.properties?.ID_1 || Math.random());
+            f.id = f.properties?.name || "01";
             return { feature: f as any, value: 10 };
           })
         },
@@ -285,7 +287,7 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
           outline: baseOutline,
           showOutline: false,
           data: features.slice(5, 10).map(f => {
-            f.id = 'ds2_' + (f.properties?.ID_1 || Math.random());
+            f.id = (f.properties?.name || "02");
             return { feature: f as any, value: 50 };
           })
         }
@@ -300,9 +302,11 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
 
     await new Promise(r => setTimeout(r, 0));
 
+    console.log(data.datasets[0]?.data)
+
     // Check if features from both datasets are rendered
-    const ds1Feature = container.querySelector('path[data-id^="ds1_"]');
-    const ds2Feature = container.querySelector('path[data-id^="ds2_"]');
+    const ds1Feature = container.querySelector('path[data-id^="Aizawl"]');
+    const ds2Feature = container.querySelector('path[data-id^="Lawngtlai"]');
 
     expect(ds1Feature).toBeTruthy();
     expect(ds2Feature).toBeTruthy();
@@ -310,10 +314,10 @@ describe('ChartRenderer Choropleth tests with data/india-states.topo.json', () =
 });
 
 describe('Indian island repositioning', () => {
-  const nationOutline = getTopoFeature(topoJson, 'data') as any;
+  const nationOutline = getTopoFeature(topoJson, 'states') as any;
 
-  it('should move Andaman and Nicobar closer to the eastern peninsular India region', () => {
-    const island = features.find(f => f.properties?.NAME_1 === 'Andaman and Nicobar');
+  it('should move Andaman and Nicobar Islands closer to the eastern peninsular India region', () => {
+    const island = features.find(f => f.properties?.name === 'Andaman and Nicobar Islands');
     expect(island).toBeTruthy();
     const adjustedIsland = repositionIndianIslands(island as any) as any;
     const projectionCtx = createProjection('albers', nationOutline, 800, 600, { padding: 20 });
@@ -327,7 +331,7 @@ describe('Indian island repositioning', () => {
   });
 
   it('should move Lakshadweep closer to the western peninsular India region', () => {
-    const island = features.find(f => f.properties?.NAME_1 === 'Lakshadweep');
+    const island = features.find(f => f.properties?.name === 'Lakshadweep');
     expect(island).toBeTruthy();
     const adjustedIsland = repositionIndianIslands(island as any) as any;
     const projectionCtx = createProjection('albers', nationOutline, 800, 600, { padding: 20 });
@@ -341,7 +345,7 @@ describe('Indian island repositioning', () => {
   });
 
   it('should scale Lakshadweep to twice its original size', () => {
-    const island = features.find(f => f.properties?.NAME_1 === 'Lakshadweep');
+    const island = features.find(f => f.properties?.name === 'Lakshadweep');
     expect(island).toBeTruthy();
 
     const adjustedIsland = repositionIndianIslands(island as any) as any;

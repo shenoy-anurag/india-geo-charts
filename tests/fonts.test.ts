@@ -5,7 +5,7 @@ import * as path from 'path';
 import type { ChartData, TopoTopology } from '../src/types.js';
 import { getAllFeatures, getTopoFeature } from '../src/core/topojson.js';
 
-const topoJsonPath = path.resolve(__dirname, '../data/india-states.topo.json');
+const topoJsonPath = path.resolve(__dirname, '../data/india.topo.json');
 const topoJson = JSON.parse(fs.readFileSync(topoJsonPath, 'utf8')) as TopoTopology;
 const features = getAllFeatures(topoJson);
 
@@ -14,7 +14,7 @@ function createTestData(values: Record<string, number>): ChartData {
     labels: ['States'],
     datasets: [{
       label: 'States',
-      outline: getTopoFeature(topoJson, 'data') as any,
+      outline: getTopoFeature(topoJson, 'states') as any,
       showOutline: true,
       data: features.slice(0, 3).map((f, i) => {
         f.id = String(i + 1);
@@ -55,7 +55,7 @@ describe('ChartRenderer Font Customization Tests', () => {
   });
 
   it('should inject external font links into the document head', () => {
-    const data = createTestData({ '1': 100 });
+    const data = createTestData({ '01': 100 });
     const fontUrl = 'https://fonts.googleapis.com/css2?family=Roboto&display=swap';
 
     new ChartRenderer({
@@ -74,7 +74,7 @@ describe('ChartRenderer Font Customization Tests', () => {
   });
 
   it('should inject external font links into the document head 2', () => {
-    const data = createTestData({ '1': 100 });
+    const data = createTestData({ '01': 100 });
     const fontUrl = 'https://fonts.googleapis.com/css2?family=LibreBaskerville&display=swap';
 
     new ChartRenderer({
@@ -93,7 +93,7 @@ describe('ChartRenderer Font Customization Tests', () => {
   });
 
   it('should apply defaultFamily to all text elements', async () => {
-    const data = createTestData({ '1': 100 });
+    const data = createTestData({ '01': 100 });
     new ChartRenderer({
       container,
       data,
@@ -115,7 +115,7 @@ describe('ChartRenderer Font Customization Tests', () => {
   });
 
   it('should allow component-level overrides for font-family', async () => {
-    const data = createTestData({ '1': 100 });
+    const data = createTestData({ '01': 100 });
     new ChartRenderer({
       container,
       data,
@@ -135,7 +135,7 @@ describe('ChartRenderer Font Customization Tests', () => {
   });
 
   it('should apply font-weight and font-style to text elements', async () => {
-    const data = createTestData({ '1': 100 });
+    const data = createTestData({ '01': 100 });
     new ChartRenderer({
       container,
       data,
@@ -154,7 +154,7 @@ describe('ChartRenderer Font Customization Tests', () => {
   });
 
   it('should apply font settings to tooltips', async () => {
-    const data = createTestData({ '1': 100 });
+    const data = createTestData({ '01': 100 });
     new ChartRenderer({
       container,
       data,

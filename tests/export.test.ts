@@ -3,28 +3,31 @@ import { ChartRenderer, type ChartOptions } from '../src/core/renderer.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { ChartData, TopoTopology } from '../src/types.js';
-import { getAllFeatures, getTopoFeature } from '../src/core/topojson.js';
+import { getAllFeatures, getDistricts as getDistrictsFeatures, getStates as getStatesFeatures, getTopoFeature } from '../src/core/topojson.js';
 
 // Load TopoJSON once for all tests
-const topoJsonPath = path.resolve(__dirname, '../data/india-states.topo.json');
+// const topoJsonPath = path.resolve(__dirname, '../data/india-states.topo.json');
+const topoJsonPath = path.resolve(__dirname, '../data/india.topo.json');
 const topoJson = JSON.parse(fs.readFileSync(topoJsonPath, 'utf8')) as TopoTopology;
-const features = getAllFeatures(topoJson);
+const allFeatures = getAllFeatures(topoJson);
+const statesFeatures = getStatesFeatures(topoJson);
+const districtsFeatures = getDistrictsFeatures(topoJson);
 
 function createTestData(values: Record<string, number>): ChartData {
   return {
     labels: ['States'],
     datasets: [{
       label: 'States',
-      outline: getTopoFeature(topoJson, 'data') as any,
+      outline: getTopoFeature(topoJson, 'states') as any,
       showOutline: true,
-      data: features
-        .filter(f => f.properties?.ID_1 && values[String(f.properties.ID_1)] !== undefined)
+      data: statesFeatures
+        .filter(f => f.properties?.id && values[String(f.properties.id)] !== undefined)
         .map(f => {
           // ensure the feature returned by getFeatureId matches our test keys.
-          f.id = String(f.properties!.ID_1);
+          f.id = String(f.properties!.name);
           return {
             feature: f as any,
-            value: values[String(f.properties!.ID_1)]!
+            value: values[String(f.properties!.id)]!
           };
         })
     }]
@@ -74,9 +77,11 @@ describe('ChartRenderer Export tests', () => {
 
   it('should export SVG correctly', async () => {
     const data = createTestData({
-      '1': 100, // Andaman and Nicobar
-      '2': 200, // Telangana
+      '29': 100, // Karnataka
+      '36': 200, // Telangana
     });
+
+    console.log(data.datasets[0]?.data)
 
     const renderer = new ChartRenderer({
       container,
@@ -97,8 +102,8 @@ describe('ChartRenderer Export tests', () => {
     const xmlnsMatch = svgString.match(/xmlns="http:\/\/www\.w3\.org\/2000\/svg"/g);
     expect(xmlnsMatch?.length).toBe(1); // Should appear exactly once
 
-    expect(svgString).toContain('data-id="1"');
-    expect(svgString).toContain('data-id="2"');
+    expect(svgString).toContain('data-id="Karnataka"');
+    expect(svgString).toContain('data-id="Telangana"');
     expect(svgString).toContain('SVG Export Test');
 
     // Save to data/exports for verification
@@ -167,17 +172,19 @@ describe('ChartRenderer Export tests', () => {
   });
 
   it('should render and export using all Indian states with randomized values', async () => {
-    const nation = getTopoFeature(topoJson, 'data');
+    const nation = getTopoFeature(topoJson, 'states');
+    // const nation = getTopoFeature(topoJson, 'districts');
+    // console.log(nation)
 
     const data: ChartData = {
-      labels: features.map(f => (f.properties?.NAME_1 as string) || 'Unknown'),
+      labels: statesFeatures.map(f => (f.properties?.name as string) || 'Unknown'),
       datasets: [{
         label: 'Indian States',
         outline: nation as any,
         showOutline: true,
-        data: features.map(f => {
+        data: statesFeatures.map(f => {
           // Ensure every feature has a predictable ID for testing
-          const name = f.properties?.NAME_1 as string;
+          const name = f.properties?.name as string;
           if (name) {
             f.id = name.toLowerCase().replace(/\s+/g, '_');
           }
@@ -229,12 +236,87 @@ describe('ChartRenderer Export tests', () => {
 
     // Verify some specific states are present in the output
     expect(svgString).toContain('data-id="maharashtra"');
-    expect(svgString).toContain('data-id="orissa"');
+    expect(svgString).toContain('data-id="odisha"');
     expect(svgString).toContain('data-id="karnataka"');
     expect(svgString).toContain('All India States');
 
     // Save to data/exports for visual verification
     const exportPath = path.resolve(__dirname, '../data/exports/all-states-random.svg');
+    if (!fs.existsSync(path.dirname(exportPath))) {
+      fs.mkdirSync(path.dirname(exportPath), { recursive: true });
+    }
+    fs.writeFileSync(exportPath, svgString);
+  });
+
+  it('should render and export using all Indian districts with randomized values', async () => {
+    const districts = getTopoFeature(topoJson, 'districts');
+
+    const data: ChartData = {
+      labels: districtsFeatures.map(f => (f.properties?.name as string) || 'Unknown'),
+      datasets: [{
+        label: 'Indian States',
+        outline: districts as any,
+        showOutline: true,
+        data: districtsFeatures.map(f => {
+          // Ensure every feature has a predictable ID for testing
+          const name = f.properties?.name as string;
+          if (name) {
+            f.id = name.toLowerCase().replace(/\s+/g, '_');
+          }
+          return {
+            feature: f as any,
+            value: Math.random() * 100
+          };
+        })
+      }]
+    };
+
+    const renderer = new ChartRenderer({
+      container,
+      data,
+      chartType: 'choropleth',
+      width: 1000,
+      height: 800,
+      title: 'All India Districts - Randomized Data',
+      colors: {
+        fill: '#ffffffb7',
+        border: '#e4e5e7',
+        // border: '#000000',
+        borderWidth: 0.3,
+        hover: '#ccc',
+        scale: ['#dfefff', '#08306b']
+      },
+      fontConfig: {
+        externalFonts: ['https://fonts.googleapis.com/css2?family=Recursive:wght@300..1000&display=swap'],
+        defaultFamily: "'Recursive', sans-serif"
+      },
+      subtitle: 'How did districts perform in 2026?',
+      legend: {
+        position: 'top-right'
+      },
+      creator: "Anurag Shenoy",
+      creatorConfig: {
+        fontSize: 10,
+        fontFamily: "'Recursive', sans-serif",
+        fontWeight: 700,
+        fontStyle: null,
+        color: "#000000"
+      },
+      source: "Open Government Data (OGD) Platform India"
+    });
+
+    await new Promise(r => setTimeout(r, 0));
+
+    const svgString = await renderer.export('svg') as string;
+
+    // Verify some specific states are present in the output
+    expect(svgString).toContain('data-id="shahjahanpur"');
+    expect(svgString).toContain('data-id="north_and_middle_andaman"');
+    expect(svgString).toContain('data-id="ahmedabad"');
+    expect(svgString).toContain('All India Districts');
+
+    // Save to data/exports for visual verification
+    const exportPath = path.resolve(__dirname, '../data/exports/all-districts-random.svg');
     if (!fs.existsSync(path.dirname(exportPath))) {
       fs.mkdirSync(path.dirname(exportPath), { recursive: true });
     }

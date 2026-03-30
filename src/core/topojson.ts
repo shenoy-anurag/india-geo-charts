@@ -35,9 +35,46 @@ export function getAllFeatures(topology: TopoTopology): GeoFeature[] {
   return features;
 }
 
+export function getStates(topology: TopoTopology): GeoFeature[] {
+  const features: GeoFeature[] = [];
+  for (const key of Object.keys(topology.objects)) {
+    if (key === 'states') {
+      const obj = topology.objects[key];
+      if (obj.type === 'GeometryCollection') {
+        const featureCollection = topojson.feature(topology as any, obj) as any;
+        if (featureCollection && featureCollection.type === 'FeatureCollection') {
+          features.push(...(featureCollection.features as GeoFeature[]));
+        }
+      } else {
+        features.push(topojson.feature(topology as any, obj) as unknown as GeoFeature);
+      }
+    }
+  }
+  return features;
+}
+
+export function getDistricts(topology: TopoTopology): GeoFeature[] {
+  const features: GeoFeature[] = [];
+  for (const key of Object.keys(topology.objects)) {
+    if (key === 'districts') {
+      const obj = topology.objects[key];
+      if (obj.type === 'GeometryCollection') {
+        const featureCollection = topojson.feature(topology as any, obj) as any;
+        if (featureCollection && featureCollection.type === 'FeatureCollection') {
+          features.push(...(featureCollection.features as GeoFeature[]));
+        }
+      } else {
+        features.push(topojson.feature(topology as any, obj) as unknown as GeoFeature);
+      }
+    }
+  }
+  return features;
+}
+
 export function getFeatureId(feature: GeoFeature): string {
   if (feature.id !== undefined) {
     return String(feature.id);
   }
-  return feature.properties?.name || 'unknown';
+  const name = feature.properties?.name;
+  return (typeof name === 'string' ? name : '') || 'unknown';
 }

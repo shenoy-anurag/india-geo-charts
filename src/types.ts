@@ -174,6 +174,7 @@ export interface IndiaGeoChartOptions {
     parallels?: [number, number];
     rotate?: [number, number, number];
   };
+  showDistricts?: boolean;
   
   colors?: {
     fill?: string;

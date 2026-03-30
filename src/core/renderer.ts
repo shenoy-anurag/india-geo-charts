@@ -55,6 +55,7 @@ export interface ChartOptions {
   padding: number;
   projection: 'mercator' | 'albers';
   projectionConfig: any;
+  showDistricts: boolean;
   colors: {
     fill: string;
     border: string;
@@ -186,6 +187,8 @@ export class ChartRenderer {
       padding: options.padding ?? 35,
       projection: options.projection || 'albers',
       projectionConfig: options.projectionConfig || {},
+      showDistricts: options.showDistricts ? options.showDistricts : false,
+      // TODO: Remove showDistricts if the export with districts is successful.
       colors: {
         fill: options.colors?.fill ?? DEFAULT_COLORS.fill,
         border: options.colors?.border ?? DEFAULT_COLORS.border,
