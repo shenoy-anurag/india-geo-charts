@@ -161,7 +161,7 @@ export class ChartRenderer {
       ? {
         show: true,
         position: 'bottom-right' as const,
-        width: 150,
+        width: 225,
         height: 15,
         fontSize: 11,
         fontFamily: fontConfig.defaultFamily,
@@ -173,7 +173,7 @@ export class ChartRenderer {
       : false;
 
     const watermarkConfig = options.watermark !== false
-      ? { text: 'india-geo-charts', opacity: 0.3, url: NPM_PACKAGE_URL, ...(options.watermark || {}) }
+      ? { text: 'india-geo-charts', opacity: 0.5, url: NPM_PACKAGE_URL, ...(options.watermark || {}) }
       : false;
 
     this.options = {
@@ -183,7 +183,7 @@ export class ChartRenderer {
       chartType: options.chartType || 'choropleth',
       width: options.width || this.container.clientWidth || 800,
       height: options.height || this.container.clientHeight || 600,
-      padding: options.padding ?? 20,
+      padding: options.padding ?? 35,
       projection: options.projection || 'albers',
       projectionConfig: options.projectionConfig || {},
       colors: {
@@ -211,9 +211,9 @@ export class ChartRenderer {
       notes: options.notes || '',
       notesConfig: { ...this.getDefaultAnnotationConfig(), fontSize: 11, color: '#999999', fontFamily: fontConfig.defaultFamily, ...(options.notesConfig || {}) },
       source: options.source || '',
-      sourceConfig: { ...this.getDefaultAnnotationConfig(), fontSize: 10, color: '#999999', fontFamily: fontConfig.defaultFamily, ...(options.sourceConfig || {}) },
+      sourceConfig: { ...this.getDefaultAnnotationConfig(), fontSize: 11, color: '#999999', fontFamily: fontConfig.defaultFamily, ...(options.sourceConfig || {}) },
       creator: options.creator || '',
-      creatorConfig: { ...this.getDefaultAnnotationConfig(), fontSize: 10, color: '#999999', fontFamily: fontConfig.defaultFamily, ...(options.creatorConfig || {}) },
+      creatorConfig: { ...this.getDefaultAnnotationConfig(), fontSize: 10, color: '#1f1f1f', fontFamily: fontConfig.defaultFamily, fontWeight: options.creatorConfig?.fontWeight || 700, ...(options.creatorConfig || {}) },
       watermark: watermarkConfig,
       legend: legendConfig,
       exportConfig: {
@@ -637,8 +637,8 @@ export class ChartRenderer {
     if (this.options.title) {
       const title = this.createText(
         this.options.title,
-        this.options.width / 2,
-        yOffset,
+        this.options.width - 350,
+        yOffset + 50,
         this.options.titleConfig,
         'middle'
       );
@@ -649,8 +649,8 @@ export class ChartRenderer {
     if (this.options.subtitle) {
       const subtitle = this.createText(
         this.options.subtitle,
-        this.options.width / 2,
-        yOffset,
+        this.options.width - 350,
+        yOffset + 50,
         this.options.subtitleConfig,
         'middle'
       );
@@ -675,7 +675,7 @@ export class ChartRenderer {
     if (this.options.source) {
       const source = this.createText(
         `Source: ${this.options.source}`,
-        10,
+        80,
         bottomY,
         this.options.sourceConfig,
         'start'
@@ -686,9 +686,9 @@ export class ChartRenderer {
 
     if (this.options.creator) {
       const creator = this.createText(
-        `Created by: ${this.options.creator}`,
-        10,
-        bottomY,
+        `Created by\n ${this.options.creator}`,
+        80,
+        bottomY - 10,
         this.options.creatorConfig,
         'start'
       );
@@ -698,10 +698,10 @@ export class ChartRenderer {
     if (this.options.watermark) {
       const watermark = this.createText(
         this.options.watermark.text,
-        this.options.width - 10,
+        this.options.width - 115,
         this.options.height - 10,
         {
-          fontSize: 10,
+          fontSize: 12,
           fontFamily: this.options.fontConfig.defaultFamily,
           color: `rgba(128, 128, 128, ${this.options.watermark.opacity})`,
         },
@@ -749,26 +749,26 @@ export class ChartRenderer {
     let legendX: number, legendY: number;
 
     if (legend.position === 'top-right') {
-      legendX = this.options.width - legend.width - 20;
-      legendY = 20;
+      legendX = this.options.width - legend.width - 250;
+      legendY = 125;
     } else {
-      legendX = this.options.width - legend.width - 20;
+      legendX = this.options.width - legend.width - 120;
       legendY = this.options.height - 80;
     }
 
     const legendG = document.createElementNS(SVG_NS, 'g');
     legendG.setAttribute('transform', `translate(${legendX}, ${legendY})`);
 
-    const bg = document.createElementNS(SVG_NS, 'rect');
-    bg.setAttribute('x', '-5');
-    bg.setAttribute('y', '-5');
-    bg.setAttribute('width', String(legend.width + 10));
-    bg.setAttribute('height', String(legend.height + (isChoropleth ? 30 : 40) + 10));
-    bg.setAttribute('fill', legend.backgroundColor);
-    bg.setAttribute('stroke', legend.borderColor);
-    bg.setAttribute('stroke-width', String(legend.borderWidth));
-    bg.setAttribute('rx', '3');
-    legendG.appendChild(bg);
+    // const bg = document.createElementNS(SVG_NS, 'rect');
+    // bg.setAttribute('x', '-5');
+    // bg.setAttribute('y', '-5');
+    // bg.setAttribute('width', String(legend.width + 10));
+    // bg.setAttribute('height', String(legend.height + (isChoropleth ? 30 : 40) + 10));
+    // bg.setAttribute('fill', legend.backgroundColor);
+    // bg.setAttribute('stroke', legend.borderColor);
+    // bg.setAttribute('stroke-width', String(legend.borderWidth));
+    // bg.setAttribute('rx', '3');
+    // legendG.appendChild(bg);
 
     if (isChoropleth && this.colorScale) {
       const defs = this.svg?.querySelector('defs');
@@ -780,8 +780,8 @@ export class ChartRenderer {
       const gradient = document.createElementNS(SVG_NS, 'linearGradient');
       gradient.setAttribute('id', gradientId);
       gradient.setAttribute('x1', '0%');
-      gradient.setAttribute('y1', '100%');
-      gradient.setAttribute('x2', '0%');
+      gradient.setAttribute('y1', '0%');
+      gradient.setAttribute('x2', '100%');
       gradient.setAttribute('y2', '0%');
 
       const colors = this.options.colors.scale;

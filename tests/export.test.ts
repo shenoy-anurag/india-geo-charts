@@ -209,6 +209,18 @@ describe('ChartRenderer Export tests', () => {
         defaultFamily: "'Recursive', sans-serif"
       },
       subtitle: 'Randomized Data',
+      legend: {
+        position: 'top-right'
+      },
+      creator: "Anurag Shenoy",
+      creatorConfig: {
+        fontSize: 10,
+        fontFamily: "'Recursive', sans-serif",
+        fontWeight: 700,
+        fontStyle: null,
+        color: "#000000"
+      },
+      source: "Open Government Data (OGD) Platform India"
     });
 
     await new Promise(r => setTimeout(r, 0));
