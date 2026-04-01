@@ -2,13 +2,16 @@ import { geoCentroid, geoConicEqualArea, geoMercator, geoPath, type GeoProjectio
 import type { Bounds, FeatureCollection, GeoFeature, GeoGeometry } from '../types.js';
 
 const ISLAND_TRANSLATION_OFFSETS: Record<string, [number, number]> = {
+  'Andaman and Nicobar': [-8, 3],
+  'Lakshadweep Islands': [-2, 2.1],
   'Andaman and Nicobar Islands': [-8, 3],
   'Lakshadweep': [-2, 2.1]
 };
 
 function getIslandTranslation(feature: GeoFeature): [number, number] | null {
   const name = String(feature.properties?.name || feature.id || '').trim();
-  return ISLAND_TRANSLATION_OFFSETS[name] ?? null;
+  const stateName = String(feature.properties?.state_name || feature.id || '').trim();
+  return (ISLAND_TRANSLATION_OFFSETS[name] ?? null) || (ISLAND_TRANSLATION_OFFSETS[stateName] ?? null);
 }
 
 function translateCoordinates(coordinates: any, offset: [number, number]): any {
@@ -59,7 +62,8 @@ function scaleFeature(feature: GeoFeature, factor: number): GeoFeature {
 
 function getIslandScaleFactor(feature: GeoFeature): number | null {
   const name = String(feature.properties?.name || feature.id || '').trim();
-  if (name === 'Lakshadweep') return 2;
+  const stateName = String(feature.properties?.state_name || feature.id || '').trim();
+  if (name === 'Lakshadweep' || stateName === 'Lakshadweep') return 2;
   return null;
 }
 
@@ -73,6 +77,9 @@ export function repositionIndianIslands(input: GeoFeature | GeoGeometry | Featur
       ...input,
       features: input.features.map((feature) => {
         const scaleFactor = getIslandScaleFactor(feature);
+        // Translation information is returned only for features that are 
+        // present in ISLAND_TRANSLATION_OFFSETS variable. 
+        // Thus preventing other features (states/districts) from being translated.
         const translation = getIslandTranslation(feature);
         let updatedFeature = scaleFactor ? scaleFeature(feature, scaleFactor) : feature;
         return translation ? translateFeature(updatedFeature, translation) : updatedFeature;
@@ -83,6 +90,9 @@ export function repositionIndianIslands(input: GeoFeature | GeoGeometry | Featur
   if ('type' in input && (input as GeoFeature).geometry) {
     const feature = input as GeoFeature;
     const scaleFactor = getIslandScaleFactor(feature);
+    // Translation information is returned only for features that are 
+    // present in ISLAND_TRANSLATION_OFFSETS variable. 
+    // Thus preventing other features (states/districts) from being translated.
     const translation = getIslandTranslation(feature);
     const updatedFeature = scaleFactor ? scaleFeature(feature, scaleFactor) : feature;
     return translation ? translateFeature(updatedFeature, translation) : updatedFeature;

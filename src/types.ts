@@ -239,12 +239,6 @@ export interface BubbleData {
   radius: number;
 }
 
-export interface ProjectionContext {
-  project(lng: number, lat: number): Point;
-  invert(x: number, y: number): [number, number];
-  bounds: Bounds;
-}
-
 export interface LinearScale {
   (value: number): number;
   domain(): [number, number];
