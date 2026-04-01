@@ -1,7 +1,6 @@
 import { getFeatureId } from './topojson.js';
 import { createProjection, repositionIndianIslands, type ProjectionContext } from './projection.js';
 import { createColorScale, createLinearScale, DEFAULT_COLORS } from '../utils/colors.js';
-import type { ChartData, GeoFeature, ChartDatasetItem } from '../types.js';
 import { NPM_PACKAGE_URL } from '../constants.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';

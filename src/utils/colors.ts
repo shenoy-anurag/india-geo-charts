@@ -1,3 +1,5 @@
+import { type ColorScale, type LinearScale } from "../types.js";
+
 export function hexToRgb(hex: string): [number, number, number] {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   if (!result) return [0, 0, 0];
@@ -44,12 +46,6 @@ export function interpolateColors(colors: string[], t: number): string {
   return interpolateColor(color1, color2, remainder);
 }
 
-export interface LinearScale {
-  (value: number): number;
-  domain(): [number, number];
-  range(): [number, number];
-}
-
 export function createLinearScale(
   domain: [number, number] = [0, 1],
   range: [number, number] = [0, 1]
@@ -66,13 +62,6 @@ export function createLinearScale(
   scale.range = () => [r0, r1] as [number, number];
   
   return scale;
-}
-
-export interface ColorScale {
-  (value: number): string;
-  domain(): [number, number];
-  colors(): string[];
-  ticks(count?: number): number[];
 }
 
 export function createColorScale(
