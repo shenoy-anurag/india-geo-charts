@@ -1,11 +1,14 @@
 # india-geo-charts
+![npm](https://img.shields.io/npm/v/india-geo-charts.svg)
+![License](https://img.shields.io/npm/l/india-geo-charts.svg)
+![Badge: Bundle Size Minified + gZipped](https://badgen.net/bundlephobia/minzip/india-geo-charts@0.1.0)
 
 A lightweight TypeScript library for creating interactive choropleth and bubble charts for India.
 
 ## Features
 
 - **Minimal dependencies** - d3-geo and topojson-client.
-- **Small bundle** - ~29KB gzipped
+- **Small bundle** - ~14KB minified + gzipped
 - **Pure SVG rendering** - Native browser SVG, no Canvas for display
 - **Interactive tooltips** - Hover to see state name and values
 - **Export support** - PNG and SVG export via API (PNG export is not working at the moment)
@@ -21,123 +24,137 @@ npm install india-geo-charts
 ## Quick Start
 
 ```typescript
-import { createChart } from 'india-geo-charts';
+import {
+    ChartRenderer,
+    type ChartData,
+    type GeoFeature,
+    type TopoTopology,
+    getTopoFeature,
+    getStates
+} from "india-geo-charts";
 
-// Create a choropleth chart
-const chart = createChart({
-  container: '#map',
-  geoJson: indiaStatesGeoJson,  // Your GeoJSON data
-  data: {
-    'Maharashtra': 123456,
-    'Karnataka': 98765,
-    // ... more states
-  },
-  chartType: 'choropleth',
-  colors: {
-    scale: ['#f7fbff', '#08306b']  // Color gradient
-  },
-  title: 'Population by State',
-  source: 'Census 2021',
-  showLegend: true
+fetch('https://cdn.jsdelivr.net/gh/shenoy-anurag/india-geo-charts@0.1.0/topofiles/india.topo.json')
+    .then((r) => r.json())
+    .then((india: TopoTopology) => {
+
+    const states = getStates(india);
+    const nation: GeoFeature = getTopoFeature(india, 'states') as GeoFeature;
+
+    let container = document.getElementById("chart");
+
+    const data: ChartData = {
+        labels: states.map(f => (f.properties.name as string) || 'Unknown'),
+        datasets: [{
+            label: 'Indian States',
+            outline: nation as any,
+            showOutline: true,
+            data: states.map(f => {
+                return {
+                    feature: f as any,
+                    value: Math.random() * 100
+                };
+            })
+        }]
+    };
+
+    const renderer = new ChartRenderer({
+        container,
+        data,
+        chartType: 'choropleth',
+        width: 1000,
+        height: 800,
+        title: 'Pizza consumption in India',
+        subtitle: '% of the population eating one pizza a week?',
+        colors: {
+            fill: '#ffffffb7',
+            border: '#e4e5e7',
+            borderWidth: 0.5,
+            hover: '#ccc',
+            scale: ['#dfefff', '#08306b']
+        },
+        fontConfig: {
+            externalFonts: ['https://fonts.googleapis.com/css2?family=Recursive:wght@300..1000&display=swap'],
+            defaultFamily: "'Recursive', sans-serif"
+        },
+        legend: {
+            position: 'top-right'
+        },
+        creator: "@pizzalover99",
+        creatorConfig: {
+            fontSize: 10,
+            fontFamily: "'Recursive', sans-serif",
+            fontWeight: 700,
+            fontStyle: null,
+            color: "#000000"
+        },
+        source: "Big Pizza Initiative (BPI), India"
+    });
+
+    // renderer.destroy()
 });
-
-// Handle hover events
-chart.on('hover', (feature, value, event) => {
-  console.log(`${feature.properties.name}: ${value}`);
-});
-
-// Export to PNG
-const pngBlob = await chart.export('png');
-
-// Export to SVG
-const svgString = await chart.export('svg');
-
-// Update data
-chart.update({
-  'Maharashtra': 200000,
-  'Karnataka': 150000
-});
-
-// Cleanup
-chart.destroy();
 ```
 
-## Bubble Charts
-
-```typescript
-const chart = createChart({
-  container: '#map',
-  geoJson: indiaGeoJson,
-  data: populationData,
-  chartType: 'bubble',
-  bubbleConfig: {
-    minRadius: 5,
-    maxRadius: 40,
-    fill: '#e74c3c'
-  }
-});
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>India Geo Charts Demo</title>
+  <style>
+    body { margin: 0; font-family: sans-serif; }
+    #chart { width: 100%; height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="chart"></div>
+  <script type="module" src="/src/index.ts"></script>
+</body>
+</html>
 ```
 
 ## Custom Fonts & CDN
 
 Easily use Google Fonts or any external stylesheet for your charts.
 
-```typescript
-const chart = createChart({
-  container: '#map',
-  data: populationData,
-  fontConfig: {
-    // Automatically injects Google Fonts link into document head
-    externalFonts: [
-      'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap'
-    ],
-    // Set global default font family
-    defaultFamily: 'Montserrat'
-  },
-  titleConfig: {
-    fontSize: 24,
-    fontWeight: 'bold' // Custom font weights
-  },
-  subtitleConfig: {
-    fontStyle: 'italic' // Custom font styles
-  }
-});
-```
-
 ## API
 
-### createChart(options)
+### ChartRenderer(options)
 
-Creates a new chart instance.
+Creates a new chart instance, and renders it.
 
 ### Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `container` | `HTMLElement \| string` | Required | Target container |
-| `geoJson` | `GeoJSON` | Required | GeoJSON data |
-| `data` | `Record<string, number>` | `{}` | State-to-value mapping |
-| `chartType` | `'choropleth' \| 'bubble'` | `'choropleth'` | Chart type |
-| `colors.scale` | `string[]` | Blue scale | Color gradient |
-| `colors.fill` | `string` | `'#e0e0e0'` | Default fill color |
-| `colors.hover` | `string` | `'#333333'` | Hover fill color |
-| `title` | `string` | `''` | Chart title |
-| `subtitle` | `string` | `''` | Chart subtitle |
-| `source` | `string` | `''` | Data source attribution |
-| `creator` | `string` | `''` | Chart creator |
-| `notes` | `string` | `''` | Notes text (bottom-right) |
-| `legend` | `LegendConfig \| false` | `true` | Legend options |
-| `watermark` | `WatermarkConfig \| false` | `true` | Watermark options |
-| `formatValue` | `(value: number) => string` | `v => v.toLocaleString()` | Value formatter |
-| `fontConfig.externalFonts` | `string[]` | `[]` | External font URLs (CDN) |
-| `fontConfig.defaultFamily` | `string` | `'sans-serif'` | Global default font family |
-| `titleConfig.fontWeight` | `string \| number` | `undefined` | Title font weight |
-| `titleConfig.fontStyle` | `'normal' \| 'italic'` | `undefined` | Title font style |
+| Option                     | Type                        | Default                   | Description                |
+| -------------------------- | --------------------------- | ------------------------- | -------------------------- |
+| `container`                | `HTMLElement \| string`     | Required                  | Target container           |
+| `topoJson`                  | `TopoJSON`                   | Required                  | TopoJSON data               |
+| `data`                     | `ChartData`    | `{}`                      | Labels and Dataset     |
+| `chartType`                | `'choropleth' \| 'bubble'`  | `'choropleth'`            | Chart type                 |
+| `colors.scale`             | `string[]`                  | Blue scale                | Color gradient             |
+| `colors.fill`              | `string`                    | `'#e0e0e0'`               | Default fill color         |
+| `colors.hover`             | `string`                    | `'#333333'`               | Hover fill color           |
+| `colors.border`             | `string`                    | `'#ffffff'`               | Border Color           |
+| `colors.borderWidth`             | `number`                    | `1`               | Hover fill color           |
+| `title`                    | `string`                    | `''`                      | Chart title                |
+| `titleConfig` | `AnnotationConfig` | `{fontSize: 20, fontFamily: "'Recursive', sans-serif", color: '#333333'}` | Chart title font and color               |
+| `subtitle`                 | `string`                    | `''`                      | Chart subtitle             |
+| `subtitleConfig` | `AnnotationConfig` | `{fontSize: 14, fontFamily: "'Recursive', sans-serif", color: '#666666'}` | Chart subtitle font and color               |
+| `source`                   | `string`                    | `''`                      | Data source attribution    |
+| `sourceConfig` | `AnnotationConfig` | `{fontSize: 11, fontFamily: "'Recursive', sans-serif", color: '#999999'}` | Chart Title Font & Color |
+| `creator`                  | `string`                    | `''`                      | Chart creator              |
+| `creatorConfig` | `AnnotationConfig` | `{fontSize: 10, fontFamily: "'Recursive', sans-serif", color: '#1f1f1f'}` | Creator Font & Color |
+| `notes`                    | `string`                    | `''`                      | Notes text (bottom-right)  |
+| `notesConfig` | `AnnotationConfig` | `{fontSize: 11, fontFamily: "'Recursive', sans-serif", color: '#999999'}` | Notes Font & Color |
+| `legend`                   | `LegendConfig \| false`     | `true`                    | Legend options             |
+| `watermark`                | `WatermarkConfig \| false`  | `true`                    | Watermark options          |
+| `formatValue`              | `(value: number) => string` | `v => v.toLocaleString()` | Value formatter            |
+| `fontConfig.externalFonts` | `string[]`                  | `[]`                      | External font URLs (CDN)   |
+| `fontConfig.defaultFamily` | `string`                    | `'sans-serif'`            | Global default font family |
 
 ### Methods
 
 - `update(data)` - Update chart data
-- `updateGeoJson(geoJson)` - Update GeoJSON
 - `export('png')` - Export as PNG blob
 - `export('svg')` - Export as SVG string
 - `destroy()` - Cleanup chart
@@ -150,5 +167,4 @@ Creates a new chart instance.
 - `'leave'` - Fires when mouse leaves feature
 
 ## License
-
 MIT
