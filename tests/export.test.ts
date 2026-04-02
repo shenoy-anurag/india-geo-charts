@@ -328,9 +328,6 @@ describe('ChartRenderer Export tests', () => {
   });
 
   it('translate islands correctly even if all features are provided', async () => {
-    // https://cdn.jsdelivr.net/gh/shenoy-anurag/india-geo-charts@0.0.4/topo_files/india.topo.json
-    // const india = await fetch('https://cdn.jsdelivr.net/gh/shenoy-anurag/india-geo-charts@0.0.4/topo_files/india.topo.json').then((r) => r.json());
-
     const nation = getTopoFeature(topoJson, 'states');
     // const nation = topojson.merge(topoJson, topoJson.objects.states.geometries);
     // console.log(nation)
