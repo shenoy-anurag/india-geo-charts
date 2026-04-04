@@ -2,7 +2,7 @@
 <p align="center">
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/npm/l/india-geo-charts.svg?style=flat-square" /></a>
   <a href="https://www.npmjs.com/package/india-geo-charts"><img alt="npm package badge & link" src="https://img.shields.io/npm/v/india-geo-charts.svg?style=flat-square" /></a>
-  <a href="https://deno.bundlejs.com/?q=india-geo-charts"><img alt="Badge: Bundle Size Minified + gZipped" src="https://deno.bundlejs.com/?q=india-geo-charts&badge=gzip&badge-style=flat-square" /></a>
+  <a href="https://deno.bundlejs.com/?q=india-geo-charts"><img alt="Badge: Bundle Size Minified + gZipped" src="https://deno.bundlejs.com/badge?q=india-geo-charts&badge-style=flat-square" /></a>
 </p>
 
 A lightweight TypeScript library for creating interactive choropleth and bubble charts for India.
