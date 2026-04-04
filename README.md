@@ -7,6 +7,9 @@
 
 A lightweight TypeScript library for creating interactive choropleth and bubble charts for India.
 
+## Preview
+<img alt="Preview" src="docs/assets/india-geo-charts-v0.1.1-preview1.png" />
+
 ## Features
 
 - **Minimal dependencies** - d3-geo and topojson-client.
