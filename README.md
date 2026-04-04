@@ -1,14 +1,16 @@
 # india-geo-charts
-![npm](https://img.shields.io/npm/v/india-geo-charts.svg)
-![License](https://img.shields.io/npm/l/india-geo-charts.svg)
-![Badge: Bundle Size Minified + gZipped](https://badgen.net/bundlephobia/minzip/india-geo-charts@0.1.0)
+<p align="center">
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/npm/l/india-geo-charts.svg?style=flat-square" /></a>
+  <a href="https://www.npmjs.com/package/india-geo-charts"><img alt="npm package badge & link" src="https://img.shields.io/npm/v/india-geo-charts.svg?style=flat-square" /></a>
+  <a href="https://deno.bundlejs.com/?q=india-geo-charts"><img alt="Badge: Bundle Size Minified + gZipped" src="https://deno.bundlejs.com/?q=india-geo-charts&badge=gzip&badge-style=flat-square" /></a>
+</p>
 
 A lightweight TypeScript library for creating interactive choropleth and bubble charts for India.
 
 ## Features
 
 - **Minimal dependencies** - d3-geo and topojson-client.
-- **Small bundle** - ~14KB minified + gzipped
+- **Small bundle** - ~17KB minified + gzipped
 - **Pure SVG rendering** - Native browser SVG, no Canvas for display
 - **Interactive tooltips** - Hover to see state name and values
 - **Export support** - PNG and SVG export via API (PNG export is not working at the moment)
