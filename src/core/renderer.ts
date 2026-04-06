@@ -937,6 +937,8 @@ export class ChartRenderer {
   public async export(format: 'png' | 'svg'): Promise<string | Blob> {
     if (!this.svg) throw new Error('SVG not initialized');
 
+    await waitForRenderedChart(this);
+
     if (format === 'svg') {
       const clone = this.svg.cloneNode(true) as SVGSVGElement;
       return new XMLSerializer().serializeToString(clone);
@@ -1014,6 +1016,26 @@ export class ChartRenderer {
     this.featureElements.clear();
     this.bubbleElements.clear();
   }
+}
+
+async function waitForRenderedChart(renderer: ChartRenderer, timeout = 5000) {
+  const start = Date.now();
+
+  return new Promise<void>((resolve, reject) => {
+    const check = () => {
+      const svg = renderer.getSVG();
+      if (svg?.querySelector('.main-group')?.childElementCount) {
+        resolve();
+        return;
+      }
+      if (Date.now() - start > timeout) {
+        reject(new Error('ChartRenderer did not finish drawing within the timeout.'));
+        return;
+      }
+      setTimeout(check, 20);
+    };
+    check();
+  });
 }
 
 export function createChart(options: any): ChartRenderer {
