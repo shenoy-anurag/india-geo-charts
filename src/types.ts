@@ -142,8 +142,8 @@ export interface TopoTopology {
 }
 
 export interface ChartDatasetItem {
-  value: number;
   feature: GeoFeature;
+  value: number;
 }
 
 export interface ChartDataset {
